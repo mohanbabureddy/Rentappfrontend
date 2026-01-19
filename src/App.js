@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import TenantBills from './TenantBills';
 import TenantComplaints from './TenantComplaints';
 import TenantOccupants from './TenantOccupants';
@@ -8,7 +8,7 @@ import AdminUsers from './AdminUsers';
 import AdminViewBills from './AdminViewBills';
 import AdminPaidBillsReport from './AdminPaidBillsReport';
 import AdminComplaints from './AdminComplaints';
-import AdminOccupants from './AdminOccupants';
+import AdminTenantDocuments from './AdminTenantDocuments';
 import Login from './Login';
 import Registration from './Registration';
 import ForgotReset from './ForgotReset';
@@ -159,7 +159,7 @@ function App() {
                 <Link to="/admin/users" style={navLinkStyle}>Manage Users</Link>
                 <Link to="/admin/paid-report" style={navLinkStyle}>Paid Report</Link>
                 <Link to="/admin/complaints" style={navLinkStyle}>Complaints</Link>
-                <Link to="/admin/occupants" style={navLinkStyle}>Occupants</Link>
+                <Link to="/admin/tenant-docs" style={navLinkStyle}>Tenant Docs</Link>
               </>
             ) : (
               <>
@@ -183,7 +183,9 @@ function App() {
                 <Route path="/admin/users" element={<AdminUsers />} />
                 <Route path="/admin/paid-report" element={<AdminPaidBillsReport />} />
                 <Route path="/admin/complaints" element={<AdminComplaints />} />
-                <Route path="/admin/occupants" element={<AdminOccupants />} />
+                {/* Redirect legacy occupants path to new tenant docs */}
+                <Route path="/admin/occupants" element={<Navigate to="/admin/tenant-docs" replace />} />
+                <Route path="/admin/tenant-docs" element={<AdminTenantDocuments />} />
               </>
             )}
           </Routes>
