@@ -14,6 +14,7 @@ import Registration from './Registration';
 import ForgotReset from './ForgotReset';
 import Terms from './Terms';
 import RefundPolicy from './RefundPolicy';
+import ChatAssistant from './ChatAssistant';
 
 // App version (exposed via environment variable REACT_APP_VERSION)
 const APP_VERSION = process.env.REACT_APP_VERSION || '0.1.0';
@@ -48,6 +49,8 @@ function App() {
     setUser(null);
     clearTimeout(timerRef.current);
   };
+
+  const defaultRoute = user?.role === 'ADMIN' ? '/admin/view-bills' : '/';
 
   // Inactivity auto-logout logic
   useEffect(() => {
@@ -188,12 +191,14 @@ function App() {
                 <Route path="/admin/tenant-docs" element={<AdminTenantDocuments />} />
               </>
             )}
+            <Route path="*" element={<Navigate to={defaultRoute} replace />} />
           </Routes>
           <div style={{marginTop:48,fontSize:12,textAlign:'center',color:'#64748b'}}>
             <Link to="/terms" style={{color:'#2563eb',marginRight:16}}>Terms & Conditions</Link>
             <Link to="/refund-policy" style={{color:'#2563eb',marginRight:16}}>Cancellation & Refund Policy</Link>
             <span style={{opacity:0.8}}>Version {APP_VERSION}</span>
           </div>
+          {user.role !== 'ADMIN' && <ChatAssistant />}
         </div>
       )}
     </Router>

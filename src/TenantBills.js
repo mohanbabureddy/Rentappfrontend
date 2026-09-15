@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { url, FETCH_CREDENTIALS, userMoveInDepositUrl } from './apiClient';
+import { url, authFetch, userMoveInDepositUrl } from './apiClient';
 
 function TenantBills({ username }) {
   const [bills, setBills] = useState([]);
@@ -13,7 +13,7 @@ function TenantBills({ username }) {
   const fetchBills = useCallback(async () => {
     if (!username) return;
     try {
-  const response = await fetch(url.tenantBills(username), { credentials: FETCH_CREDENTIALS });
+  const response = await authFetch(url.tenantBills(username));
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
       // Normalize miscellaneous field naming (miscellaneous | misc | balance | maintenance | otherCharges)
@@ -39,7 +39,7 @@ function TenantBills({ username }) {
     (async () => {
       setInfoLoading(true);
       try {
-        const res = await fetch(userMoveInDepositUrl.self(username), { credentials: FETCH_CREDENTIALS });
+        const res = await authFetch(userMoveInDepositUrl.self(username));
         if (res.ok) {
           const data = await res.json();
           if (!data.error) {
@@ -57,36 +57,54 @@ function TenantBills({ username }) {
     })();
   }, [username, fetchBills, navigate]);
 
-  const payNow = (bill) => {
+  const payNow = async (bill) => {
     // Prevent duplicate payment triggers for the same bill
     if (payingBillId === bill.id) return;
+    setPayingBillId(bill.id);
 
-    setPayingBillId(bill.id); // Mark this bill as being paid
-    const totalAmount = (
-      Number(bill.rent || 0) +
-      Number(bill.water || 0) +
-      Number(bill.electricity || 0) +
-      Number(bill.miscellaneous || 0)
-    ) * 100; // Razorpay expects amount in paise
+    // The order is created server-side (amount computed from the bill itself, not
+    // trusted from the browser) so Razorpay's post-payment signature can later be
+    // verified against a specific order/amount instead of just taking our word for it.
+    let order;
+    try {
+      const res = await authFetch(url.createOrder(bill.id), { method: 'POST' });
+      order = await res.json();
+      if (!res.ok) throw new Error(order.error || `HTTP ${res.status}`);
+    } catch (err) {
+      alert(`Could not start payment: ${err.message}`);
+      setPayingBillId(null);
+      return;
+    }
 
     const options = {
-      key: "rzp_test_83AfjhlCGpYRkn",
-      amount: totalAmount,
-      currency: "INR",
+      key: order.keyId,
+      amount: order.amount,
+      currency: order.currency,
+      order_id: order.orderId,
       name: "Tenant Rent Billing",
-  description: `Payment for ${bill.monthYear} (incl. misc ${bill.miscellaneous || 0})`,
+      description: `Payment for ${bill.monthYear}`,
       handler: async (response) => {
-        alert(`✅ Payment successful!\nPayment ID: ${response.razorpay_payment_id}`);
         try {
-          await fetch(url.markBillPaid(bill.id), { method: 'PUT', credentials: FETCH_CREDENTIALS });
-          await fetch(url.logPaymentSuccess(), {
+          const res = await authFetch(url.markBillPaid(bill.id), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature
+            })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+          alert(`✅ Payment successful!\nPayment ID: ${response.razorpay_payment_id}`);
+          await authFetch(url.logPaymentSuccess(), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tenantName: username, paymentId: response.razorpay_payment_id }),
-            credentials: FETCH_CREDENTIALS
+            body: JSON.stringify({ tenantName: username, paymentId: response.razorpay_payment_id })
           });
           fetchBills();
         } catch (err) {
+          alert(`Payment could not be verified: ${err.message}`);
           console.error("Error after payment success:", err);
         } finally {
           setPayingBillId(null); // Reset after payment
@@ -99,11 +117,10 @@ function TenantBills({ username }) {
     const rzp = new window.Razorpay(options);
     rzp.on('payment.failed', (resp) => {
       alert(`❌ Payment failed: ${resp.error.description}`);
-      fetch(url.logPaymentFailure(), {
+      authFetch(url.logPaymentFailure(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(resp.error),
-        credentials: FETCH_CREDENTIALS
+        body: JSON.stringify(resp.error)
       });
       setPayingBillId(null); // Reset if failed
     });

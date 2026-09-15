@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE as BASE_FROM_CLIENT, API_PREFIX } from './apiClient';
+import { API_BASE as BASE_FROM_CLIENT, API_PREFIX, authFetch } from './apiClient';
 
 // Use centralized apiClient base; fallback to provided deployed host if env not set
 const API_BASE = `${BASE_FROM_CLIENT}${API_PREFIX}/tenants`;
@@ -80,7 +80,7 @@ export default function AdminPaidBillsReport() {
     if (!month) return alert('Select a month');
     setLoading(true); setError('');
     try {
-      const res = await fetch(`${API_BASE}/paid-bills/${month}`);
+      const res = await authFetch(`${API_BASE}/paid-bills/${month}`);
       if (!res.ok) throw new Error('Fetch failed');
       const raw = await res.json();
       // Normalize miscellaneous under various possible backend keys

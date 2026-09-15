@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { url, API_PREFIX, FETCH_CREDENTIALS } from './apiClient';
+import { url, API_PREFIX, authFetch, openAuthenticatedFile } from './apiClient';
 
 /*
   TenantOccupants component
@@ -30,14 +30,13 @@ export default function TenantOccupants({ username }) {
   const [formName, setFormName] = useState('');
   const [formFile, setFormFile] = useState(null);
   const [uploadMsg, setUploadMsg] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
   // Preview removed; expecting optional 'verified' flag from backend for lock logic
 
   const load = useCallback(async () => {
     if (!username) return;
     setLoading(true); setError('');
     try {
-      const res = await fetch(url.occupantsList(username), { credentials: FETCH_CREDENTIALS });
+      const res = await authFetch(url.occupantsList(username));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const arr = Array.isArray(data) ? data : (Array.isArray(data.content) ? data.content : []);
@@ -57,6 +56,17 @@ export default function TenantOccupants({ username }) {
   }, [username]);
 
   useEffect(()=>{ load(); }, [load]);
+
+  if (!username) {
+    return (
+      <div style={wrapper}>
+        <h2 style={heading}>Occupants & Aadhaar</h2>
+        <p style={{ color:'#475569', marginTop:-12, marginBottom:24, fontSize:14 }}>
+          Tenant username is missing. Please log in again to view your occupant records.
+        </p>
+      </div>
+    );
+  }
 
   const resetForm = () => { setFormName(''); setFormFile(null); const f = document.getElementById('aadhar-file-input'); if (f) f.value=''; };
 
@@ -81,7 +91,7 @@ export default function TenantOccupants({ username }) {
       const fd = new FormData();
       fd.append('name', formName.trim());
       fd.append('file', formFile);
-      const res = await fetch(url.occupantsList(username), { method:'POST', body: fd, credentials: FETCH_CREDENTIALS });
+      const res = await authFetch(url.occupantsList(username), { method:'POST', body: fd });
       if (!res.ok) {
         let extra='';
         try { const j=await res.json(); extra = j.message || j.error || ''; } catch {}
@@ -94,19 +104,6 @@ export default function TenantOccupants({ username }) {
       console.error(e);
       setUploadMsg({ type:'error', text: /Failed to fetch|NetworkError/i.test(e.message) ? 'Network error. Is backend occupant endpoint implemented?' : e.message });
     } finally { setAdding(false); }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this occupant entry?')) return;
-    setDeletingId(id);
-    try {
-  const res = await fetch(url.occupantDelete(id), { method:'DELETE', credentials: FETCH_CREDENTIALS });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      await load();
-    } catch (e) {
-      console.error('Delete error:', e);
-      alert(e.message || 'Could not delete');
-    } finally { setDeletingId(null); }
   };
 
   return (
@@ -160,7 +157,6 @@ export default function TenantOccupants({ username }) {
                 <th style={thTd}>Aadhaar File</th>
                 <th style={thTd}>Uploaded</th>
                 <th style={thTd}>Verification Status</th>
-                <th style={thTd}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -172,9 +168,13 @@ export default function TenantOccupants({ username }) {
                     <td style={{ ...thTd, fontWeight:500 }}>{it.name}</td>
                     <td style={thTd}>
                       {it.aadharUrl ? (
-                        <a href={it.aadharUrl} target="_blank" rel="noreferrer" style={{ color:'#2563eb', textDecoration:'none', fontWeight:600 }} title={fileName || 'Open'}>
+                        <button
+                          onClick={()=>openAuthenticatedFile(it.aadharUrl).catch(e=>alert(e.message || 'Could not open file'))}
+                          title={fileName || 'Open'}
+                          style={{ background:'none', border:'none', padding:0, color:'#2563eb', textDecoration:'underline', fontWeight:600, cursor:'pointer' }}
+                        >
                           {truncate(fileName || 'Open File', 28)}
-                        </a>
+                        </button>
                       ) : (
                         <em style={{ color:'#94a3b8' }}>{fileName || 'N/A'}</em>
                       )}
@@ -186,17 +186,6 @@ export default function TenantOccupants({ username }) {
                       ) : (
                         <span style={{ display:'inline-block', padding:'4px 10px', borderRadius:20, background:'#fde68a', color:'#92400e', fontWeight:600, fontSize:12 }}>PENDING</span>
                       )}
-                    </td>
-                    <td style={thTd}>
-                      <button
-                        onClick={()=>handleDelete(it.id)}
-                        disabled={deletingId===it.id || verified}
-                        style={{
-                          background:'#ef4444',
-                          color:'#fff', border:'none', borderRadius:6, padding:'6px 14px', fontWeight:'bold', cursor: deletingId===it.id || verified ?'not-allowed':'pointer', opacity: (deletingId===it.id || verified)?0.6:1
-                        }}
-                        title={verified ? 'Cannot delete after verification' : 'Delete this occupant'}
-                      >{verified? 'Locked' : (deletingId===it.id?'Deleting…':'Delete')}</button>
                     </td>
                   </tr>
                 );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE as BASE_FROM_CLIENT, API_PREFIX } from './apiClient';
+import { API_BASE as BASE_FROM_CLIENT, API_PREFIX, authFetch } from './apiClient';
 
 const API_BASE = `${BASE_FROM_CLIENT}${API_PREFIX}/tenants`;
 
@@ -93,7 +93,7 @@ export default function AdminViewBills() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/all`);
+      const res = await authFetch(`${API_BASE}/all`);
       if (!res.ok) throw new Error('Failed to fetch bills');
   setBills(await res.json());
     } catch (err) {
@@ -113,7 +113,7 @@ export default function AdminViewBills() {
     if (!window.confirm('Are you sure you want to delete this bill?')) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/deleteBill/${id}`, { method: 'DELETE' });
+      const res = await authFetch(`${API_BASE}/deleteBill/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
       await fetchBills();
     } catch (err) {
@@ -150,7 +150,7 @@ export default function AdminViewBills() {
 
   setLoading(true);
   try {
-    const res = await fetch(`${API_BASE}/updateBill/${editId}`, {
+    const res = await authFetch(`${API_BASE}/updateBill/${editId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editForm),

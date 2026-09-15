@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { url, FETCH_CREDENTIALS } from './apiClient';
+import { url, authFetch, openAuthenticatedFile } from './apiClient';
 
 // AdminTenantDocuments
 // Groups occupant KYC/doc records by tenant and lets admin browse per-tenant
@@ -11,11 +11,13 @@ export default function AdminTenantDocuments(){
   const [error, setError] = useState('');
   const [selectedTenant, setSelectedTenant] = useState('');
   const [q, setQ] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
+  const [verifyingId, setVerifyingId] = useState(null);
 
   const load = useCallback(async ()=>{
     setLoading(true); setError('');
     try{
-      const res = await fetch(url.adminOccupantsAll(), { credentials: FETCH_CREDENTIALS });
+      const res = await authFetch(url.adminOccupantsAll());
       if(!res.ok){
         const t = await res.text().catch(()=> '');
         throw new Error(`HTTP ${res.status} ${res.statusText} ${t.slice(0,120)}`);
@@ -43,6 +45,29 @@ export default function AdminTenantDocuments(){
   }, [selectedTenant]);
 
   useEffect(()=>{ load(); }, [load]);
+
+  const handleDelete = async (id) => {
+    if(!window.confirm('Delete this document? This cannot be undone.')) return;
+    setDeletingId(id);
+    try{
+      const res = await authFetch(url.occupantDelete(id), { method:'DELETE' });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      await load();
+    }catch(e){
+      alert(e.message || 'Could not delete');
+    }finally{ setDeletingId(null); }
+  };
+
+  const handleVerify = async (id) => {
+    setVerifyingId(id);
+    try{
+      const res = await authFetch(url.occupantVerify(id), { method:'PATCH' });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      await load();
+    }catch(e){
+      alert(e.message || 'Could not verify');
+    }finally{ setVerifyingId(null); }
+  };
 
   const tenants = useMemo(()=>{
     const uniq = new Map();
@@ -109,6 +134,7 @@ export default function AdminTenantDocuments(){
                 <th style={thTd}>File</th>
                 <th style={thTd}>Uploaded</th>
                 <th style={thTd}>Status</th>
+                <th style={thTd}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -117,9 +143,12 @@ export default function AdminTenantDocuments(){
                   <td style={{...thTd,fontWeight:600}}>{r.name}</td>
                   <td style={thTd}>
                     {r.aadharUrl ? (
-                      <a href={r.aadharUrl} target="_blank" rel="noreferrer" style={{ color:'#2563eb', fontWeight:600 }}>
+                      <button
+                        onClick={()=>openAuthenticatedFile(r.aadharUrl).catch(e=>alert(e.message || 'Could not open file'))}
+                        style={{ background:'none', border:'none', padding:0, color:'#2563eb', fontWeight:600, textDecoration:'underline', cursor:'pointer' }}
+                      >
                         {truncate(r.aadharFileName || 'Open', 28)}
-                      </a>
+                      </button>
                     ) : <em style={{ color:'#94a3b8' }}>N/A</em>}
                   </td>
                   <td style={thTd}>{r.uploadedAt ? new Date(r.uploadedAt).toLocaleString() : ''}</td>
@@ -127,13 +156,35 @@ export default function AdminTenantDocuments(){
                     {r.verified ? (
                       <span style={{ background:'#dcfce7', color:'#166534', padding:'4px 10px', borderRadius:20, fontSize:12, fontWeight:600 }}>VERIFIED</span>
                     ) : (
-                      <span style={{ background:'#fde68a', color:'#92400e', padding:'4px 10px', borderRadius:20, fontSize:12, fontWeight:600 }}>PENDING</span>
+                      <button
+                        onClick={()=>handleVerify(r.id)}
+                        disabled={verifyingId===r.id}
+                        style={{
+                          background:'#fde68a', color:'#92400e', border:'none', borderRadius:20,
+                          padding:'4px 10px', fontSize:12, fontWeight:600,
+                          cursor: verifyingId===r.id ? 'not-allowed':'pointer',
+                          opacity: verifyingId===r.id ? 0.6 : 1
+                        }}
+                        title="Click to verify this document"
+                      >{verifyingId===r.id ? 'Verifying…' : 'PENDING · Verify'}</button>
                     )}
+                  </td>
+                  <td style={thTd}>
+                    <button
+                      onClick={()=>handleDelete(r.id)}
+                      disabled={deletingId===r.id}
+                      style={{
+                        background:'#ef4444', color:'#fff', border:'none', borderRadius:6,
+                        padding:'6px 14px', fontWeight:'bold',
+                        cursor: deletingId===r.id ? 'not-allowed':'pointer',
+                        opacity: deletingId===r.id ? 0.6 : 1
+                      }}
+                    >{deletingId===r.id ? 'Deleting…' : 'Delete'}</button>
                   </td>
                 </tr>
               ))}
               {!filteredDocs.length && (
-                <tr><td colSpan={4} style={{...thTd,color:'#64748b'}}>No documents for this tenant.</td></tr>
+                <tr><td colSpan={5} style={{...thTd,color:'#64748b'}}>No documents for this tenant.</td></tr>
               )}
             </tbody>
           </table>

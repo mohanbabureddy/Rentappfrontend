@@ -27,10 +27,11 @@ function Login({ setUser }) {
         }
         throw new Error(data.error || `Login failed (HTTP ${res.status})`);
       }
-  if (!data.role) data.role = 'TENANT';
-  data.lastActivity = Date.now();
-  setUser(data);
-  localStorage.setItem('user', JSON.stringify(data));
+      if (!data.role) data.role = 'TENANT';
+      if (!data.username) data.username = data.userName || data.name || username;
+      data.lastActivity = Date.now();
+      setUser(data);
+      localStorage.setItem('user', JSON.stringify(data));
       if (data.role === 'ADMIN') navigate('/admin/view-bills'); else navigate('/');
     } catch (e) {
       // Hide detailed network/backend errors from end users; show generic message.

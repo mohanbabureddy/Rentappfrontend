@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { authFetch } from './apiClient';
 
 /* AdminComplaints
    Features:
@@ -10,7 +11,7 @@ import React, { useEffect, useState, useCallback } from 'react';
    If you only have per-tenant GET now, create a new admin GET that returns all.
 */
 
-const API_BASE = (process.env.REACT_APP_API_BASE || 'http://localhost:8080').replace(/\/$/, '');
+const API_BASE = (process.env.REACT_APP_API_BASE || 'http://localhost:5000').replace(/\/$/, '');
 const API_PREFIX = process.env.REACT_APP_API_PREFIX || '/api';
 
 function AdminComplaints() {
@@ -27,7 +28,7 @@ function AdminComplaints() {
   const fetchAll = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const resp = await fetch(`${API_BASE}${API_PREFIX}/tenants/complaints`); // needs backend endpoint
+      const resp = await authFetch(`${API_BASE}${API_PREFIX}/tenants/complaints`); // needs backend endpoint
       if (!resp.ok) throw new Error('Failed to load complaints (HTTP ' + resp.status + ')');
       const data = await resp.json();
       setComplaints(Array.isArray(data) ? data.sort((a,b)=> new Date(b.createdDate) - new Date(a.createdDate)) : []);
@@ -45,7 +46,7 @@ function AdminComplaints() {
     }
     setClosingId(id);
     try {
-      const resp = await fetch(`${API_BASE}${API_PREFIX}/tenants/complaints/${id}/close`, {
+      const resp = await authFetch(`${API_BASE}${API_PREFIX}/tenants/complaints/${id}/close`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resolutionComment: closingCommentText })
@@ -63,7 +64,7 @@ function AdminComplaints() {
     if (!window.confirm('Re-open this complaint?')) return;
     setReopeningId(id);
     try {
-      const resp = await fetch(`${API_BASE}${API_PREFIX}/tenants/complaints/${id}/reopen`, { method: 'PUT' });
+      const resp = await authFetch(`${API_BASE}${API_PREFIX}/tenants/complaints/${id}/reopen`, { method: 'PUT' });
       if (!resp.ok) throw new Error('Failed to re-open (HTTP ' + resp.status + ')');
       setComplaints(prev => prev.map(c => c.id === id ? { ...c, status: 'OPEN' } : c));
     } catch (e) {

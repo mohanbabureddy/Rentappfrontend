@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE, API_PREFIX } from './apiClient';
+import { API_BASE, API_PREFIX, authFetch } from './apiClient';
 
 // Helper to get previous, current, and next month in YYYY-MM format
 function getThreeMonths() {
@@ -37,7 +37,7 @@ const AdminAddBill = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`${API_BASE}${API_PREFIX}/users/names`)
+    authFetch(`${API_BASE}${API_PREFIX}/users/names`)
       .then(res => res.json())
       .then(data => setTenants(data))
       .catch(err => console.error('Failed to fetch tenants', err));
@@ -53,7 +53,7 @@ const AdminAddBill = () => {
     setError('');
 
     try {
-  const res = await fetch(`${API_BASE}${API_PREFIX}/tenants/addBill`, {
+  const res = await authFetch(`${API_BASE}${API_PREFIX}/tenants/addBill`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

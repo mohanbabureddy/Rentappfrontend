@@ -12,7 +12,6 @@ export default function Registration() {
   const [form, setForm] = useState({
     username: '',
     email: '',
-    mobileNumber: '',
     otp: '',
     password: '',
     confirmPassword: ''
@@ -34,7 +33,7 @@ export default function Registration() {
   const start = async (e)=>{
     e.preventDefault();
     setErr(''); setMsg('');
-  if(!form.username||!form.email||!form.mobileNumber){setErr('All fields required');return;}
+  if(!form.username||!form.email){setErr('All fields required');return;}
   if(!accepted){setErr('You must accept Terms & Refund Policy');return;}
     setLoading(true);
     try{
@@ -43,14 +42,22 @@ export default function Registration() {
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           username:form.username.trim(),
-          email:form.email.trim(),
-          mobileNumber:form.mobileNumber.trim()
+          email:form.email.trim()
         }),
         credentials: FETCH_CREDENTIALS
       });
       const data=await res.json().catch(()=>({}));
-      if(!res.ok) throw new Error(data.error||'Failed to start');
-      setMsg('OTP sent to mobile. Enter OTP & set password.');
+      if(!res.ok) {
+        const serverMsg = (data.error || data.message || '').toString();
+        // If backend indicates the user already exists, show friendly message
+        if (res.status === 409 || /already\s*(registered|exists)|duplicate|user\s*exists/i.test(serverMsg)) {
+          setErr('Already registered — please login.');
+        } else {
+          throw new Error(data.error||'Failed to start');
+        }
+        return;
+      }
+      setMsg('OTP sent to email. Enter OTP & set password.');
       setStep(2);
     }catch(e2){setErr(e2.message);}finally{setLoading(false);}
   };
@@ -113,8 +120,6 @@ export default function Registration() {
                  value={form.username} onChange={onChange} style={inputStyle}/>
           <input name="email" type="email" placeholder="Email"
                  value={form.email} onChange={onChange} style={inputStyle}/>
-          <input name="mobileNumber" placeholder="Mobile (+91XXXXXXXXXX)"
-                 value={form.mobileNumber} onChange={onChange} style={inputStyle}/>
           <label style={{display:'flex',alignItems:'flex-start',fontSize:12,lineHeight:1.4,color:'#334155',marginBottom:14}}>
             <input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)} style={{marginRight:8,marginTop:2}} />
             <span>I agree to the <Link to="/terms" style={{color:'#2563eb',fontWeight:600}}>Terms & Conditions</Link> and the <Link to="/refund-policy" style={{color:'#2563eb',fontWeight:600}}>Cancellation & Refund Policy</Link>.</span>

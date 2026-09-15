@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { url, FETCH_CREDENTIALS } from './apiClient';
+import { url, authFetch } from './apiClient';
 
 /*
   TenantComplaints component
   - Allows a tenant to submit a complaint with description
   - Lists previously submitted complaints (basic view)
   Backend expected endpoints:
-    POST   http://localhost:8080/api/complaints        (body: { tenantName, description })
-    GET    http://localhost:8080/api/complaints/tenant/{tenantName}
+    POST   http://localhost:5000/api/complaints        (body: { tenantName, description })
+    GET    http://localhost:5000/api/complaints/tenant/{tenantName}
   Each complaint JSON shape assumed:
     { id, tenantName, description, status, createdDate }
 */
@@ -29,7 +29,7 @@ function TenantComplaints({ username }) {
     try {
   // Backend controller is @RequestMapping("/api/tenants") + @GetMapping("/complaints/{tenant}") (needs to be implemented)
   setListError(null);
-  const resp = await fetch(url.complaintsList(username), { credentials: FETCH_CREDENTIALS });
+  const resp = await authFetch(url.complaintsList(username));
   if (!resp.ok) throw new Error('Failed to load complaints (HTTP ' + resp.status + ')');
       const data = await resp.json();
       setComplaints(Array.isArray(data) ? data.sort((a,b)=> new Date(b.createdDate) - new Date(a.createdDate)) : []);
@@ -54,11 +54,10 @@ function TenantComplaints({ username }) {
     setSubmitting(true);
     setMessage(null);
     try {
-      const resp = await fetch(url.complaintsAdd(), {
+      const resp = await authFetch(url.complaintsAdd(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tenantName: username, description }),
-        credentials: FETCH_CREDENTIALS
+        body: JSON.stringify({ tenantName: username, description })
       });
       if (!resp.ok) {
         let extra = '';

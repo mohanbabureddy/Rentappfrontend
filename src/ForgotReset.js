@@ -45,7 +45,7 @@ export default function ForgotReset() {
       });
       const data=await res.json().catch(()=>({}));
       if(!res.ok) throw new Error(data.error||'Failed');
-      setMsg('OTP sent to registered mobile.');
+      setMsg('OTP sent to registered email.');
       setStep(2);
       setCooldown(60); // start 1-minute cooldown right after first send
     }catch(e2){setErr(e2.message);}finally{setLoading(false);}
@@ -86,7 +86,7 @@ export default function ForgotReset() {
       });
       const data=await res.json().catch(()=>({}));
       if(!res.ok) throw new Error(data.error||'Failed');
-      setMsg('OTP resent to registered mobile.');
+      setMsg('OTP resent to registered email.');
       setCooldown(60); // 60s cooldown to avoid spam
     }catch(e2){
       setErr(e2.message||'Server error');

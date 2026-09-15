@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { url, FETCH_CREDENTIALS, userMoveInDepositUrl } from './apiClient';
+import { url, authFetch, userMoveInDepositUrl } from './apiClient';
 
 const ROLES = ['ADMIN', 'TENANT'];
 
@@ -137,7 +137,7 @@ function AdminUsers() {
     setLoading(true);
     setError('');
     try {
-  const res = await fetch(url.adminUsersAll(), { credentials: FETCH_CREDENTIALS });
+  const res = await authFetch(url.adminUsersAll());
       if (!res.ok) throw new Error('Failed to fetch users');
   const data = await res.json();
   setUsers(data);
@@ -164,11 +164,10 @@ function AdminUsers() {
     }
     setLoading(true);
     try {
-      const res = await fetch(url.adminUserAdd(), {
+      const res = await authFetch(url.adminUserAdd(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser),
-        credentials: FETCH_CREDENTIALS
+        body: JSON.stringify(newUser)
       });
       if (!res.ok) {
         // Try to extract backend error message (JSON or text) so duplicate user errors show up.
@@ -219,21 +218,19 @@ function AdminUsers() {
       // Exclude password from update (prevents sending hashed value back & double hashing backend)
       const { username, role } = editUser;
       const basePayload = { username, role };
-      const res = await fetch(url.adminUserUpdate(editId), {
+      const res = await authFetch(url.adminUserUpdate(editId), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(basePayload),
-        credentials: FETCH_CREDENTIALS
+        body: JSON.stringify(basePayload)
       });
       if (!res.ok) throw new Error('Update failed');
       // After basic update, optionally update move-in/deposit if provided
       if (editUser.moveInDate || editUser.totalAmountDeposited) {
         try {
           setUpdatingMoveIn(true);
-          await fetch(userMoveInDepositUrl.update(editId), {
+          await authFetch(userMoveInDepositUrl.update(editId), {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            credentials: FETCH_CREDENTIALS,
             body: JSON.stringify({
               ...(editUser.moveInDate ? { moveInDate: editUser.moveInDate } : {}),
               ...(editUser.totalAmountDeposited ? { totalAmountDeposited: editUser.totalAmountDeposited } : {})
@@ -256,7 +253,7 @@ function AdminUsers() {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     setLoading(true);
     try {
-  const res = await fetch(url.adminUserDelete(id), { method: 'DELETE', credentials: FETCH_CREDENTIALS });
+  const res = await authFetch(url.adminUserDelete(id), { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
       await fetchUsers();
     } catch (err) {
