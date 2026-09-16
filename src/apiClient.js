@@ -34,9 +34,6 @@ export const url = {
   createOrder: (billId) => `${API_BASE}${API_PREFIX}/tenants/createOrder/${billId}`,
   logPaymentSuccess: () => `${API_BASE}${API_PREFIX}/tenants/logSuccess`,
   logPaymentFailure: () => `${API_BASE}${API_PREFIX}/tenants/logFailure`,
-  // Security deposit (tenant read, admin manage)
-  securityDepositsList: (tenant) => `${API_BASE}${API_PREFIX}/tenants/securityDeposits/${encodeURIComponent(tenant)}`,
-  securityDepositAdd: (tenant) => `${API_BASE}${API_PREFIX}/tenants/securityDeposits/${encodeURIComponent(tenant)}`,
   complaintsList: (tenant) => `${API_BASE}${API_PREFIX}/tenants/complaints/${encodeURIComponent(tenant)}`,
   complaintsAdd: () => `${API_BASE}${API_PREFIX}/tenants/complaints`,
   adminUsersAll: () => `${API_BASE}${API_PREFIX}/users/all`,
@@ -89,22 +86,4 @@ export async function openAuthenticatedFile(path) {
   const blob = await res.blob();
   const blobUrl = URL.createObjectURL(blob);
   window.open(blobUrl, '_blank', 'noopener');
-}
-
-// Generic JSON helper
-export async function jsonFetch(input, init = {}) {
-  const resp = await authFetch(input, init);
-  let data = null;
-  try { data = await resp.json(); } catch (_) { /* ignore */ }
-  if (!resp.ok) {
-    const msg = data?.error || data?.message || resp.statusText || 'Request failed';
-    throw new Error(msg);
-  }
-  return data;
-}
-
-export function buildMultipart(formEntries) {
-  const fd = new FormData();
-  Object.entries(formEntries).forEach(([k,v])=>{ if(v!==undefined && v!==null) fd.append(k,v); });
-  return fd;
 }
