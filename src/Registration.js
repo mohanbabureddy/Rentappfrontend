@@ -20,6 +20,7 @@ export default function Registration() {
   const [loading,setLoading]=useState(false);
   const [msg,setMsg]=useState('');
   const [err,setErr]=useState('');
+  const [cooldown,setCooldown]=useState(0);
 
   useEffect(()=>{
     if(finished && AUTO_REDIRECT){
@@ -27,6 +28,12 @@ export default function Registration() {
       return ()=>clearTimeout(t);
     }
   },[finished,navigate]);
+
+  useEffect(()=>{
+    if(cooldown<=0) return;
+    const t=setInterval(()=>setCooldown(c=>c>0?c-1:0),1000);
+    return ()=>clearInterval(t);
+  },[cooldown]);
 
   const onChange=e=>setForm(f=>({...f,[e.target.name]:e.target.value}));
 
@@ -49,8 +56,11 @@ export default function Registration() {
       const data=await res.json().catch(()=>({}));
       if(!res.ok) {
         const serverMsg = (data.error || data.message || '').toString();
-        // If backend indicates the user already exists, show friendly message
-        if (res.status === 409 || /already\s*(registered|exists)|duplicate|user\s*exists/i.test(serverMsg)) {
+        if (res.status === 429 && data.retryAfterSeconds) {
+          setCooldown(data.retryAfterSeconds);
+          setErr(serverMsg);
+        } else if (res.status === 409 || /already\s*(registered|exists)|duplicate|user\s*exists/i.test(serverMsg)) {
+          // If backend indicates the user already exists, show friendly message
           setErr('Already registered — please login.');
         } else {
           throw new Error(data.error||'Failed to start');
@@ -111,7 +121,9 @@ export default function Registration() {
       <h2 style={{textAlign:'center',color:'#2563eb',marginBottom:24}}>
         Tenant Registration
       </h2>
-      {err && <div style={{color:'red',marginBottom:12,textAlign:'center'}}>{err}</div>}
+      {err && <div style={{color:'red',marginBottom:12,textAlign:'center'}}>
+        {cooldown>0 ? `Please wait ${cooldown}s before requesting another OTP.` : err}
+      </div>}
       {msg && <div style={{color: finished ? '#166534':'green',marginBottom:12,textAlign:'center'}}>{msg}</div>}
 
       {!finished && step===1 && (
@@ -124,8 +136,8 @@ export default function Registration() {
             <input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)} style={{marginRight:8,marginTop:2}} />
             <span>I agree to the <Link to="/terms" style={{color:'#2563eb',fontWeight:600}}>Terms & Conditions</Link> and the <Link to="/refund-policy" style={{color:'#2563eb',fontWeight:600}}>Cancellation & Refund Policy</Link>.</span>
           </label>
-          <button type="submit" disabled={loading} style={btnStyle}>
-            {loading?'Submitting...':'Send OTP'}
+          <button type="submit" disabled={loading || cooldown>0} style={{...btnStyle, cursor:(loading||cooldown>0)?'not-allowed':'pointer', opacity:(loading||cooldown>0)?0.65:1}}>
+            {loading?'Submitting...':cooldown>0?`Wait ${cooldown}s`:'Send OTP'}
           </button>
         </form>
       )}

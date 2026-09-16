@@ -44,7 +44,13 @@ export default function ForgotReset() {
         body:JSON.stringify({username:form.username.trim()})
       });
       const data=await res.json().catch(()=>({}));
-      if(!res.ok) throw new Error(data.error||'Failed');
+      if(!res.ok) {
+        if (res.status === 429 && data.retryAfterSeconds) {
+          setCooldown(data.retryAfterSeconds);
+          setStep(2);
+        }
+        throw new Error(data.error||'Failed');
+      }
       setMsg('OTP sent to registered email.');
       setStep(2);
       setCooldown(60); // start 1-minute cooldown right after first send
@@ -85,7 +91,12 @@ export default function ForgotReset() {
         body:JSON.stringify({username:form.username.trim()})
       });
       const data=await res.json().catch(()=>({}));
-      if(!res.ok) throw new Error(data.error||'Failed');
+      if(!res.ok) {
+        if (res.status === 429 && data.retryAfterSeconds) {
+          setCooldown(data.retryAfterSeconds);
+        }
+        throw new Error(data.error||'Failed');
+      }
       setMsg('OTP resent to registered email.');
       setCooldown(60); // 60s cooldown to avoid spam
     }catch(e2){
