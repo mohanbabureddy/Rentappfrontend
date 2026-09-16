@@ -11,10 +11,15 @@ ARG REACT_APP_API_BASE
 ARG REACT_APP_API_PREFIX
 ARG REACT_APP_WITH_CREDENTIALS
 ARG REACT_APP_VERSION
+# RENDER_GIT_COMMIT is auto-injected by Render as a build arg on every
+# deploy (no dashboard config needed) -- baking it in lets the UI show
+# exactly which commit is actually deployed, no manual version bump needed.
+ARG RENDER_GIT_COMMIT
 ENV REACT_APP_API_BASE=$REACT_APP_API_BASE \
     REACT_APP_API_PREFIX=$REACT_APP_API_PREFIX \
     REACT_APP_WITH_CREDENTIALS=$REACT_APP_WITH_CREDENTIALS \
-    REACT_APP_VERSION=$REACT_APP_VERSION
+    REACT_APP_VERSION=$REACT_APP_VERSION \
+    REACT_APP_GIT_COMMIT=$RENDER_GIT_COMMIT
 
 RUN npm run build
 

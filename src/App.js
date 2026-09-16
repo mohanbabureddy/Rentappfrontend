@@ -15,16 +15,30 @@ import ForgotReset from './ForgotReset';
 import Terms from './Terms';
 import RefundPolicy from './RefundPolicy';
 import ChatAssistant from './ChatAssistant';
+import { API_BASE, API_PREFIX } from './apiClient';
 
 // App version (exposed via environment variable REACT_APP_VERSION)
 const APP_VERSION = process.env.REACT_APP_VERSION || '0.1.0';
+// Commit actually baked into this build -- set from Render's own
+// RENDER_GIT_COMMIT build arg, so it's always accurate with no manual bump.
+const FRONTEND_COMMIT = process.env.REACT_APP_GIT_COMMIT || 'local-dev';
 
 // Keep inactivity limit outside component so it's stable and excluded from hook dependency warnings
 const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes
 
 function App() {
   const [user, setUser] = useState(null);
+  const [backendCommit, setBackendCommit] = useState(null);
   const timerRef = useRef(null);
+
+  // Fetch the backend's own deployed commit so the footer can show whether
+  // frontend and backend are both on their latest deploy at a glance.
+  useEffect(() => {
+    fetch(`${API_BASE}${API_PREFIX}/version`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => data && setBackendCommit(data.commit))
+      .catch(() => {});
+  }, []);
 
   // Load user from localStorage on app start
   useEffect(() => {
@@ -196,7 +210,8 @@ function App() {
           <div style={{marginTop:48,fontSize:12,textAlign:'center',color:'#64748b'}}>
             <Link to="/terms" style={{color:'#2563eb',marginRight:16}}>Terms & Conditions</Link>
             <Link to="/refund-policy" style={{color:'#2563eb',marginRight:16}}>Cancellation & Refund Policy</Link>
-            <span style={{opacity:0.8}}>Version {APP_VERSION}</span>
+            <span style={{opacity:0.8}}>Version {APP_VERSION} ({FRONTEND_COMMIT})</span>
+            {backendCommit && <span style={{opacity:0.8,marginLeft:8}}>· API {backendCommit}</span>}
           </div>
           {user.role !== 'ADMIN' && <ChatAssistant />}
         </div>
