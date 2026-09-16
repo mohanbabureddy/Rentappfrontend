@@ -21,7 +21,7 @@ import { API_BASE, API_PREFIX } from './apiClient';
 const APP_VERSION = process.env.REACT_APP_VERSION || '0.1.0';
 // Commit actually baked into this build -- set from Render's own
 // RENDER_GIT_COMMIT build arg, so it's always accurate with no manual bump.
-const FRONTEND_COMMIT = process.env.REACT_APP_GIT_COMMIT || 'local-dev';
+const FRONTEND_COMMIT = (process.env.REACT_APP_GIT_COMMIT || 'local-dev').slice(0, 7);
 
 // Keep inactivity limit outside component so it's stable and excluded from hook dependency warnings
 const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes
