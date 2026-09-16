@@ -114,11 +114,14 @@ export default function AdminViewBills() {
     setLoading(true);
     try {
       const res = await authFetch(`${API_BASE}/deleteBill/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Delete failed');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Delete failed');
+      }
       await fetchBills();
     } catch (err) {
       console.error(err);
-      alert('Error deleting bill');
+      alert(err.message || 'Error deleting bill');
     } finally {
       setLoading(false);
     }
@@ -311,13 +314,15 @@ export default function AdminViewBills() {
                           Edit
                         </button>
                       )}
-                      <button
-                        onClick={() => handleDelete(b.id)}
-                        style={{ ...styles.btn, ...styles.btnDelete }}
-                        disabled={loading}
-                      >
-                        Delete
-                      </button>
+                      {!b.paid && (
+                        <button
+                          onClick={() => handleDelete(b.id)}
+                          style={{ ...styles.btn, ...styles.btnDelete }}
+                          disabled={loading}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </>
                   )}
                 </td>
