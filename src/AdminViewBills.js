@@ -155,12 +155,15 @@ export default function AdminViewBills() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(editForm),
     });
-    if (!res.ok) throw new Error('Update failed');
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Update failed');
+    }
     setEditId(null);
     await fetchBills();
   } catch (err) {
     console.error(err);
-    alert('Error updating bill');
+    alert(err.message || 'Error updating bill');
   } finally {
     setLoading(false);
   }
@@ -177,7 +180,7 @@ export default function AdminViewBills() {
         <table style={styles.table}>
           <thead>
             <tr>
-              {['ID','Tenant','Year–Month','Rent','Water','Electricity','Misc','Paid','Actions'].map((h,i) => (
+              {['ID','Tenant','Year–Month','Rent','Water','Electricity','Misc','Total','Paid','Actions'].map((h,i) => (
                 <th key={i} style={styles.th}>{h}</th>
               ))}
             </tr>
@@ -273,6 +276,10 @@ export default function AdminViewBills() {
                 </td>
 
                 <td style={styles.td}>
+                  {(Number(b.rent) || 0) + (Number(b.water) || 0) + (Number(b.electricity) || 0) + (Number(b.miscellaneous) || 0)}
+                </td>
+
+                <td style={styles.td}>
                   {b.paid ? <span style={{ color:'#22c55e' }}>✅</span>
                           : <span style={{ color:'#ef4444' }}>❌</span>}
                 </td>
@@ -296,12 +303,14 @@ export default function AdminViewBills() {
                     </>
                   ) : (
                     <>
-                      <button
-                        onClick={() => handleEdit(b)}
-                        style={{ ...styles.btn, ...styles.btnEdit }}
-                      >
-                        Edit
-                      </button>
+                      {!b.paid && (
+                        <button
+                          onClick={() => handleEdit(b)}
+                          style={{ ...styles.btn, ...styles.btnEdit }}
+                        >
+                          Edit
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(b.id)}
                         style={{ ...styles.btn, ...styles.btnDelete }}
