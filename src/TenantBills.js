@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { url, authFetch, userMoveInDepositUrl } from './apiClient';
+import './TenantBills.css';
 
 function TenantBills({ username }) {
   const [bills, setBills] = useState([]);
@@ -132,21 +133,12 @@ function TenantBills({ username }) {
   }
 
   return (
-    <div
-      style={{
-        maxWidth: '900px',
-        margin: '40px auto',
-        padding: '32px',
-        background: '#f8fafc',
-        borderRadius: '16px',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-      }}
-    >
+    <div className="bills-page">
       <h2
         style={{
           color: '#2563eb',
           textAlign: 'center',
-          marginBottom: '24px',
+          marginBottom: '20px',
           letterSpacing: '1px',
           fontWeight: 'bold',
         }}
@@ -154,16 +146,16 @@ function TenantBills({ username }) {
         My Bills
       </h2>
 
-      <div style={{ background:'#fff', padding:'14px 18px', borderRadius:12, boxShadow:'0 2px 6px rgba(0,0,0,0.05)', marginBottom:28, display:'flex', flexWrap:'wrap', gap:32 }}>
-        <div style={{ fontSize:14, color:'#334155' }}>
+      <div className="bills-summary">
+        <div>
           <strong>Move-in Date:</strong>{' '}
           {moveInInfo.moveInDate ? new Date(moveInInfo.moveInDate).toLocaleDateString() : (
             infoLoading ? <em style={{ color:'#64748b' }}>Loading…</em> : <em style={{ color:'#64748b' }}>—</em>
           )}
         </div>
-        <div style={{ fontSize:14, color:'#334155' }}>
+        <div>
           <strong>Total Deposit:</strong>{' '}
-          {infoLoading ? '…' : moveInInfo.totalAmountDeposited}
+          {infoLoading ? '…' : `₹${moveInInfo.totalAmountDeposited}`}
         </div>
       </div>
 
@@ -172,72 +164,51 @@ function TenantBills({ username }) {
           No bills found for <strong>{username}</strong>.
         </p>
       ) : (
-        <table
-          style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            background: '#fff',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-            marginTop: '20px',
-          }}
-        >
-          <thead>
-            <tr style={{ background: 'linear-gradient(90deg, #2563eb 0%, #38bdf8 100%)', color: '#fff' }}>
-              <th style={{ padding: '12px' }}>Year - Month</th>
-              <th style={{ padding: '12px' }}>Rent</th>
-              <th style={{ padding: '12px' }}>Water</th>
-              <th style={{ padding: '12px' }}>Electricity</th>
-              <th style={{ padding: '12px' }}>Misc</th>
-              <th style={{ padding: '12px' }}>Total</th>
-              <th style={{ padding: '12px' }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bills.map((bill, idx) => (
-              <tr
-                key={bill.id || idx}
-                style={{
-                  background: idx % 2 === 0 ? '#f1f5f9' : '#fff',
-                  borderBottom: '1px solid #e2e8f0',
-                }}
-              >
-                <td style={{ padding: '10px', textAlign: 'center' }}>{bill.monthYear}</td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>{bill.rent}</td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>{bill.water}</td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>{bill.electricity}</td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>{bill.miscellaneous || 0}</td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>
-                  {Number(bill.rent || 0) + Number(bill.water || 0) + Number(bill.electricity || 0) + Number(bill.miscellaneous || 0)}
-                </td>
-                <td style={{ padding: '10px', textAlign: 'center' }}>
+        <div className="bill-list">
+          {bills.map((bill, idx) => {
+            const total = Number(bill.rent || 0) + Number(bill.water || 0) + Number(bill.electricity || 0) + Number(bill.miscellaneous || 0);
+            return (
+              <div className="bill-card" key={bill.id || idx}>
+                <div className="bill-card-header">
+                  <span className="bill-month">{bill.monthYear}</span>
                   {bill.paid ? (
-                    <span style={{ color: '#22c55e', fontWeight: 'bold', fontSize: '16px' }}>✅ Paid</span>
+                    <span className="bill-status-paid">✅ Paid</span>
                   ) : (
                     <button
+                      className="bill-pay-btn"
                       onClick={() => payNow(bill)}
                       disabled={payingBillId === bill.id}
-                      style={{
-                        background: 'linear-gradient(90deg, #2563eb 0%, #38bdf8 100%)',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '7px 18px',
-                        fontWeight: 'bold',
-                        fontSize: '15px',
-                        cursor: payingBillId === bill.id ? 'not-allowed' : 'pointer',
-                        opacity: payingBillId === bill.id ? 0.6 : 1,
-                      }}
                     >
                       {payingBillId === bill.id ? "Processing..." : "Pay"}
                     </button>
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+                <div className="bill-breakdown">
+                  <div className="bill-item">
+                    <span className="bill-item-label">Rent</span>
+                    <span className="bill-item-value">₹{bill.rent}</span>
+                  </div>
+                  <div className="bill-item">
+                    <span className="bill-item-label">Water</span>
+                    <span className="bill-item-value">₹{bill.water}</span>
+                  </div>
+                  <div className="bill-item">
+                    <span className="bill-item-label">Electricity</span>
+                    <span className="bill-item-value">₹{bill.electricity}</span>
+                  </div>
+                  <div className="bill-item">
+                    <span className="bill-item-label">Misc</span>
+                    <span className="bill-item-value">₹{bill.miscellaneous || 0}</span>
+                  </div>
+                </div>
+                <div className="bill-total-row">
+                  <span className="bill-total-label">Total</span>
+                  <span className="bill-total-value">₹{total}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
