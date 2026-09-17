@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { url, API_PREFIX, authFetch, openAuthenticatedFile } from './apiClient';
+import { url, authFetch, openAuthenticatedFile } from './apiClient';
 
 /*
   TenantOccupants component
@@ -50,7 +50,7 @@ export default function TenantOccupants({ username }) {
       setItems(sorted);
     } catch (e) {
       const network = /Failed to fetch|NetworkError/i.test(e.message);
-      setError(`${e.message}${network ? ' -> Backend unreachable? Check server running & CORS.' : ''}`);
+      setError(network ? 'Could not reach the server. Please check your connection and try again.' : e.message);
     }
     setLoading(false);
   }, [username]);
@@ -102,7 +102,7 @@ export default function TenantOccupants({ username }) {
       resetForm();
     } catch (e) {
       console.error(e);
-      setUploadMsg({ type:'error', text: /Failed to fetch|NetworkError/i.test(e.message) ? 'Network error. Is backend occupant endpoint implemented?' : e.message });
+      setUploadMsg({ type:'error', text: /Failed to fetch|NetworkError/i.test(e.message) ? 'Could not reach the server. Please check your connection and try again.' : e.message });
     } finally { setAdding(false); }
   };
 
@@ -193,12 +193,6 @@ export default function TenantOccupants({ username }) {
             </tbody>
           </table>
         ))}
-        {error && (
-          <div style={{ marginTop:12, fontSize:12, color:'#475569' }}>
-            Ensure backend endpoints exist: GET/POST {API_PREFIX}/tenants/occupants, DELETE by id.
-          </div>
-        )}
-  {/* Debug panel removed as requested */}
       </div>
     </div>
   );

@@ -100,7 +100,7 @@ export default function ForgotReset() {
       setMsg('OTP resent to registered email.');
       setCooldown(60); // 60s cooldown to avoid spam
     }catch(e2){
-      setErr(e2.message||'Server error');
+      setErr(e2.message||'Something went wrong. Please try again.');
     }finally{
       setResendLoading(false);
     }
@@ -143,7 +143,7 @@ export default function ForgotReset() {
             </button>
           </div>
           <div style={{fontSize:12,color:'#64748b',margin:'6px 0 8px'}}>
-            {cooldown>0 ? `You can resend OTP in ${fmt(cooldown)} minutes.` : 'You can resend the OTP now.'}
+            {cooldown>0 ? `You can resend OTP in ${fmt(cooldown)}.` : 'You can resend the OTP now.'}
           </div>
           <input name="newPassword" type="password" placeholder="New Password" value={form.newPassword} onChange={onChange} style={input}/>
           <input name="confirm" type="password" placeholder="Confirm Password" value={form.confirm} onChange={onChange} style={input}/>

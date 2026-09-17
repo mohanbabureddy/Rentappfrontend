@@ -79,10 +79,9 @@ function TenantComplaints({ username }) {
       fetchComplaints();
     } catch (err) {
       console.error('Complaint submission error:', err);
-      // Common network error message patterns -> provide a hint
       const txt = /Failed to fetch|NetworkError/i.test(err.message)
-        ? 'Network error. Check: (1) Backend running? (2) Correct API path (/api vs none)? (3) CORS allowed for POST from http://localhost:3000.'
-        : (err.message || 'Submission failed.');
+        ? 'Could not reach the server. Please check your connection and try again.'
+        : (err.message || 'Submission failed. Please try again.');
       setMessage({ type: 'error', text: txt });
     } finally {
       setSubmitting(false);
@@ -201,8 +200,7 @@ function TenantComplaints({ username }) {
         )}
         {listError && (
           <div style={{ marginTop: '12px', color: '#b91c1c', fontSize: '13px' }}>
-            Could not load complaints: {listError}<br />
-            Ensure backend has GET /api/tenants/complaints/{'{tenantName}'} endpoint.
+            Could not load complaints. Please try again later.
           </div>
         )}
       </div>

@@ -102,10 +102,9 @@ function AdminComplaints() {
         <p>Loading…</p>
       ) : visible.length === 0 ? (
         <div style={{ color: '#64748b' }}>
-          <p style={{ margin: 0 }}>No complaints found.</p>
-          <small style={{ display: 'block', marginTop: '8px', color: '#475569' }}>
-            {(error || complaints.length === 0) && 'If you have not yet implemented the backend endpoints, add GET /api/tenants/complaints and PUT /api/tenants/complaints/:id/close.'}
-          </small>
+          <p style={{ margin: 0 }}>
+            {complaints.length === 0 ? 'No complaints found.' : 'No complaints match this filter.'}
+          </p>
         </div>
       ) : (
         <table style={tableStyle}>
@@ -197,11 +196,6 @@ function AdminComplaints() {
             ))}
           </tbody>
         </table>
-      )}
-      {error && (
-        <p style={{ marginTop: '18px', fontSize: '12px', color: '#b91c1c' }}>
-          Backend error: {error}. Confirm endpoints GET /api/tenants/complaints and PUT /api/tenants/complaints/:id/close exist.
-        </p>
       )}
     </div>
   );

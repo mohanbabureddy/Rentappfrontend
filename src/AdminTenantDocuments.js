@@ -40,7 +40,7 @@ export default function AdminTenantDocuments(){
       }
     }catch(e){
       const isNet = /Failed to fetch|NetworkError/i.test(e.message);
-      setError(e.message + (isNet? ' -> Network/CORS issue?':''));
+      setError(isNet ? 'Could not reach the server. Please check your connection and try again.' : e.message);
     }finally{ setLoading(false); }
   }, [selectedTenant]);
 

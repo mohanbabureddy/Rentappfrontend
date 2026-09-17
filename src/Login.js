@@ -34,16 +34,18 @@ function Login({ setUser }) {
       localStorage.setItem('user', JSON.stringify(data));
       if (data.role === 'ADMIN') navigate('/admin/view-bills'); else navigate('/');
     } catch (e) {
-      // Hide detailed network/backend errors from end users; show generic message.
       if (e.name === 'TypeError' && (e.message === 'Failed to fetch' || e.message === 'NetworkError when attempting to fetch resource.')) {
-        setError('Server error');
+        setError('Could not reach the server. Please check your connection and try again.');
+        return;
+      }
+      // The backend's own message is already user-facing (e.g. "Invalid
+      // credentials", or "Too many failed login attempts. Try again in Ns."
+      // from the account lockout) -- swallowing it into a generic "Server
+      // error" would make a locked-out user think the whole server is down.
+      if ((e.message || '').toLowerCase().includes('registration incomplete')) {
+        setError('Registration incomplete. Click Register.');
       } else {
-        // Keep specific UX for incomplete registration, else generic fallback (avoid leaking backend stack/messages)
-        if ((e.message || '').toLowerCase().includes('registration incomplete')) {
-          setError('Registration incomplete. Click Register.');
-        } else {
-          setError('Server error');
-        }
+        setError(e.message || 'Something went wrong. Please try again.');
       }
     }
   };
