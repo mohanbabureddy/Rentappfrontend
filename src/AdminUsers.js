@@ -43,8 +43,12 @@ const styles = {
     fontSize: '15px',
     cursor: 'pointer',
   },
+  tableWrapper: {
+    overflowX: 'auto',
+  },
   table: {
     width: '100%',
+    minWidth: '760px',
     borderCollapse: 'collapse',
     background: '#fff',
     borderRadius: '12px',
@@ -351,6 +355,7 @@ function AdminUsers() {
       {loading && <p style={{ textAlign: 'center' }}>Loading...</p>}
 
       <h4 style={{ color: '#2563eb', marginBottom: '16px' }}>Existing Users</h4>
+      <div style={styles.tableWrapper}>
       <table style={styles.table}>
         <thead>
           <tr>
@@ -512,6 +517,7 @@ function AdminUsers() {
           ))}
         </tbody>
       </table>
+      </div>
 
       {/* Pagination */}
       <div style={styles.pagination}>
