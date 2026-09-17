@@ -123,6 +123,44 @@
   opacity: 0.6;
 }
 
+.deposit-pay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.deposit-pay-input {
+  width: 110px;
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.deposit-pay-input:disabled {
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
+.deposit-pay-btn {
+  background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.deposit-pay-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* Roomier layout once there's enough width to spare */
 @media (min-width: 480px) {
   .bill-breakdown {

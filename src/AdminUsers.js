@@ -106,7 +106,7 @@ function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: ROLES[0] });
   const [editId, setEditId] = useState(null);
-  const [editUser, setEditUser] = useState({ username: '', role: ROLES[0], moveInDate: '', totalAmountDeposited: '' });
+  const [editUser, setEditUser] = useState({ username: '', role: ROLES[0], moveInDate: '', manualDepositAmount: '', manualDepositNotes: '' });
   const [updatingMoveIn, setUpdatingMoveIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -201,7 +201,10 @@ function AdminUsers() {
       username: user.username,
       role: user.role,
       moveInDate: user.moveInDate || '',
-      totalAmountDeposited: user.totalAmountDeposited || ''
+      // Deliberately blank, not pre-filled with the current total -- this
+      // field adds a new deposit ledger entry, it doesn't overwrite the total.
+      manualDepositAmount: '',
+      manualDepositNotes: ''
     });
   };
 
@@ -224,19 +227,30 @@ function AdminUsers() {
         body: JSON.stringify(basePayload)
       });
       if (!res.ok) throw new Error('Update failed');
-      // After basic update, optionally update move-in/deposit if provided
-      if (editUser.moveInDate || editUser.totalAmountDeposited) {
+      // After basic update, optionally update move-in date and/or record a
+      // manual deposit entry if provided
+      if (editUser.moveInDate || editUser.manualDepositAmount) {
         try {
           setUpdatingMoveIn(true);
-          await authFetch(userMoveInDepositUrl.update(editId), {
-            method: 'PATCH',
+          const depositRes = await authFetch(userMoveInDepositUrl.update(editId), {
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ...(editUser.moveInDate ? { moveInDate: editUser.moveInDate } : {}),
-              ...(editUser.totalAmountDeposited ? { totalAmountDeposited: editUser.totalAmountDeposited } : {})
+              ...(editUser.manualDepositAmount ? {
+                manualDepositAmount: editUser.manualDepositAmount,
+                notes: editUser.manualDepositNotes || undefined
+              } : {})
             })
           });
-        } catch (e) { console.warn('Move-in/deposit patch failed', e); }
+          if (!depositRes.ok) {
+            const data = await depositRes.json().catch(() => ({}));
+            throw new Error(data.error || 'Move-in/deposit update failed');
+          }
+        } catch (e) {
+          console.warn('Move-in/deposit patch failed', e);
+          alert(e.message || 'Move-in date or deposit update failed');
+        }
         finally { setUpdatingMoveIn(false); }
       }
       setEditId(null);
@@ -404,16 +418,31 @@ function AdminUsers() {
               </td>
               <td style={styles.td}>
                 {editId === u.id ? (
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="totalAmountDeposited"
-                    value={editUser.totalAmountDeposited}
-                    onChange={handleEditChange}
-                    style={styles.input}
-                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'stretch' }}>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>
+                      Current: ₹{typeof u.totalAmountDeposited === 'number' ? u.totalAmountDeposited : (u.totalAmountDeposited || 0)}
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name="manualDepositAmount"
+                      placeholder="Add amount"
+                      value={editUser.manualDepositAmount}
+                      onChange={handleEditChange}
+                      style={{ ...styles.input, margin: 0, width: 100 }}
+                    />
+                    <input
+                      type="text"
+                      name="manualDepositNotes"
+                      placeholder="Note (optional)"
+                      value={editUser.manualDepositNotes}
+                      onChange={handleEditChange}
+                      style={{ ...styles.input, margin: 0, width: 100 }}
+                    />
+                  </div>
                 ) : (
-                  typeof u.totalAmountDeposited === 'number' ? u.totalAmountDeposited : (u.totalAmountDeposited || 0)
+                  `₹${typeof u.totalAmountDeposited === 'number' ? u.totalAmountDeposited : (u.totalAmountDeposited || 0)}`
                 )}
               </td>
 

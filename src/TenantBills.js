@@ -9,7 +9,30 @@ function TenantBills({ username }) {
   const [payingBillId, setPayingBillId] = useState(null); // Track which bill is being paid
   const [moveInInfo, setMoveInInfo] = useState({ moveInDate: null, totalAmountDeposited: 0 });
   const [infoLoading, setInfoLoading] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [payingDeposit, setPayingDeposit] = useState(false);
   const navigate = useNavigate();
+
+  const fetchDepositInfo = useCallback(async () => {
+    if (!username) return;
+    setInfoLoading(true);
+    try {
+      const res = await authFetch(userMoveInDepositUrl.self(username));
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.error) {
+          setMoveInInfo({
+            moveInDate: data.moveInDate || null,
+            totalAmountDeposited: Number(data.totalAmountDeposited || 0)
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Move-in/deposit load failed', e);
+    } finally {
+      setInfoLoading(false);
+    }
+  }, [username]);
 
   const fetchBills = useCallback(async () => {
     if (!username) return;
@@ -37,26 +60,8 @@ function TenantBills({ username }) {
       return;
     }
     fetchBills();
-    (async () => {
-      setInfoLoading(true);
-      try {
-        const res = await authFetch(userMoveInDepositUrl.self(username));
-        if (res.ok) {
-          const data = await res.json();
-          if (!data.error) {
-            setMoveInInfo({
-              moveInDate: data.moveInDate || null,
-              totalAmountDeposited: Number(data.totalAmountDeposited || 0)
-            });
-          }
-        }
-      } catch (e) {
-        console.warn('Move-in/deposit load failed', e);
-      } finally {
-        setInfoLoading(false);
-      }
-    })();
-  }, [username, fetchBills, navigate]);
+    fetchDepositInfo();
+  }, [username, fetchBills, fetchDepositInfo, navigate]);
 
   const payNow = async (bill) => {
     // Prevent duplicate payment triggers for the same bill
@@ -128,6 +133,75 @@ function TenantBills({ username }) {
     rzp.open();
   };
 
+  const payDeposit = async () => {
+    const amount = Number(depositAmount);
+    if (!amount || amount <= 0) {
+      alert('Enter an amount greater than zero');
+      return;
+    }
+    if (payingDeposit) return;
+    setPayingDeposit(true);
+
+    // Same pattern as bill payment: the order amount is decided server-side
+    // from what we send here, then re-verified against Razorpay's own order
+    // record after payment -- so the amount can't be tampered with in transit.
+    let order;
+    try {
+      const res = await authFetch(userMoveInDepositUrl.createOrder(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      });
+      order = await res.json();
+      if (!res.ok) throw new Error(order.error || `HTTP ${res.status}`);
+    } catch (err) {
+      alert(`Could not start payment: ${err.message}`);
+      setPayingDeposit(false);
+      return;
+    }
+
+    const options = {
+      key: order.keyId,
+      amount: order.amount,
+      currency: order.currency,
+      order_id: order.orderId,
+      name: "Tenant Rent Billing",
+      description: "Security deposit payment",
+      handler: async (response) => {
+        try {
+          const res = await authFetch(userMoveInDepositUrl.verify(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature
+            })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+          alert(`✅ Deposit payment successful!\nPayment ID: ${response.razorpay_payment_id}`);
+          setDepositAmount('');
+          await fetchDepositInfo();
+        } catch (err) {
+          alert(`Payment could not be verified: ${err.message}`);
+          console.error("Error after deposit payment success:", err);
+        } finally {
+          setPayingDeposit(false);
+        }
+      },
+      prefill: { name: username, email: '', contact: '' },
+      theme: { color: "#3399cc" }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.on('payment.failed', (resp) => {
+      alert(`❌ Payment failed: ${resp.error.description}`);
+      setPayingDeposit(false);
+    });
+    rzp.open();
+  };
+
   if (loading) {
     return <p style={{ textAlign: 'center', marginTop: '40px' }}>Loading bills…</p>;
   }
@@ -156,6 +230,25 @@ function TenantBills({ username }) {
         <div>
           <strong>Total Deposit:</strong>{' '}
           {infoLoading ? '…' : `₹${moveInInfo.totalAmountDeposited}`}
+        </div>
+        <div className="deposit-pay-row">
+          <input
+            type="number"
+            min="1"
+            step="0.01"
+            placeholder="Amount"
+            value={depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value)}
+            className="deposit-pay-input"
+            disabled={payingDeposit}
+          />
+          <button
+            className="deposit-pay-btn"
+            onClick={payDeposit}
+            disabled={payingDeposit}
+          >
+            {payingDeposit ? 'Processing...' : 'Pay Deposit'}
+          </button>
         </div>
       </div>
 

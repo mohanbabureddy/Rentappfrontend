@@ -52,7 +52,9 @@ export const url = {
 // Extended user move-in & deposit specific helpers
 export const userMoveInDepositUrl = {
   self: (username) => `${API_BASE}${API_PREFIX}/users/me/movein-deposit?username=${encodeURIComponent(username)}`,
-  update: (id) => `${API_BASE}${API_PREFIX}/users/${id}/movein-deposit`
+  update: (id) => `${API_BASE}${API_PREFIX}/users/${id}/movein-deposit`,
+  createOrder: () => `${API_BASE}${API_PREFIX}/users/deposit/createOrder`,
+  verify: () => `${API_BASE}${API_PREFIX}/users/deposit/verify`
 };
 
 // The backend requires a Bearer token (issued at login) on every protected route.
