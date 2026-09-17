@@ -183,7 +183,7 @@ export default function AdminViewBills() {
         <table style={styles.table}>
           <thead>
             <tr>
-              {['ID','Tenant','Year–Month','Rent','Water','Electricity','Misc','Total','Paid','Actions'].map((h,i) => (
+              {['ID','Tenant','Year–Month','Type','Rent','Water','Electricity','Misc','Total','Paid','Actions'].map((h,i) => (
                 <th key={i} style={styles.th}>{h}</th>
               ))}
             </tr>
@@ -224,6 +224,15 @@ export default function AdminViewBills() {
                   ) : (
                     b.monthYear
                   )}
+                </td>
+                <td style={styles.td}>
+                  <span style={{
+                    fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 999,
+                    background: b.billType === 'ELECTRICITY' ? '#fef3c7' : '#dbeafe',
+                    color: b.billType === 'ELECTRICITY' ? '#92400e' : '#1e40af',
+                  }}>
+                    {b.billType === 'ELECTRICITY' ? 'Electricity' : 'Rent'}
+                  </span>
                 </td>
                 <td style={styles.td}>
                   {editId === b.id ? (

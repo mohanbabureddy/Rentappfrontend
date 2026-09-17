@@ -7,7 +7,7 @@ function TenantBills({ username }) {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payingBillId, setPayingBillId] = useState(null); // Track which bill is being paid
-  const [moveInInfo, setMoveInInfo] = useState({ moveInDate: null, totalAmountDeposited: 0 });
+  const [moveInInfo, setMoveInInfo] = useState({ moveInDate: null, demandedDeposit: null, totalAmountDeposited: 0 });
   const [infoLoading, setInfoLoading] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [payingDeposit, setPayingDeposit] = useState(false);
@@ -23,6 +23,7 @@ function TenantBills({ username }) {
         if (!data.error) {
           setMoveInInfo({
             moveInDate: data.moveInDate || null,
+            demandedDeposit: data.demandedDeposit != null ? Number(data.demandedDeposit) : null,
             totalAmountDeposited: Number(data.totalAmountDeposited || 0)
           });
         }
@@ -228,9 +229,23 @@ function TenantBills({ username }) {
           )}
         </div>
         <div>
-          <strong>Total Deposit:</strong>{' '}
+          <strong>Deposit Paid:</strong>{' '}
           {infoLoading ? '…' : `₹${moveInInfo.totalAmountDeposited}`}
+          {!infoLoading && moveInInfo.demandedDeposit != null && (
+            <span style={{ color: '#64748b' }}> / ₹{moveInInfo.demandedDeposit} demanded</span>
+          )}
         </div>
+        {!infoLoading && moveInInfo.demandedDeposit != null && (
+          <div>
+            {moveInInfo.totalAmountDeposited >= moveInInfo.demandedDeposit ? (
+              <span style={{ color: '#16a34a', fontWeight: 600 }}>✅ Deposit fully paid</span>
+            ) : (
+              <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                ₹{(moveInInfo.demandedDeposit - moveInInfo.totalAmountDeposited).toFixed(2)} remaining
+              </span>
+            )}
+          </div>
+        )}
         <div className="deposit-pay-row">
           <input
             type="number"
@@ -260,10 +275,14 @@ function TenantBills({ username }) {
         <div className="bill-list">
           {bills.map((bill, idx) => {
             const total = Number(bill.rent || 0) + Number(bill.water || 0) + Number(bill.electricity || 0) + Number(bill.miscellaneous || 0);
+            const isElectricity = bill.billType === 'ELECTRICITY';
             return (
               <div className="bill-card" key={bill.id || idx}>
                 <div className="bill-card-header">
-                  <span className="bill-month">{bill.monthYear}</span>
+                  <span className="bill-month">
+                    {bill.monthYear}
+                    <span className="bill-type-tag">{isElectricity ? 'Electricity' : 'Rent'}</span>
+                  </span>
                   {bill.paid ? (
                     <span className="bill-status-paid">✅ Paid</span>
                   ) : (
@@ -277,22 +296,30 @@ function TenantBills({ username }) {
                   )}
                 </div>
                 <div className="bill-breakdown">
-                  <div className="bill-item">
-                    <span className="bill-item-label">Rent</span>
-                    <span className="bill-item-value">₹{bill.rent}</span>
-                  </div>
-                  <div className="bill-item">
-                    <span className="bill-item-label">Water</span>
-                    <span className="bill-item-value">₹{bill.water}</span>
-                  </div>
-                  <div className="bill-item">
-                    <span className="bill-item-label">Electricity</span>
-                    <span className="bill-item-value">₹{bill.electricity}</span>
-                  </div>
-                  <div className="bill-item">
-                    <span className="bill-item-label">Misc</span>
-                    <span className="bill-item-value">₹{bill.miscellaneous || 0}</span>
-                  </div>
+                  {!isElectricity && (
+                    <>
+                      <div className="bill-item">
+                        <span className="bill-item-label">Rent</span>
+                        <span className="bill-item-value">₹{bill.rent || 0}</span>
+                      </div>
+                      <div className="bill-item">
+                        <span className="bill-item-label">Water</span>
+                        <span className="bill-item-value">₹{bill.water || 0}</span>
+                      </div>
+                    </>
+                  )}
+                  {(isElectricity || bill.electricity) && (
+                    <div className="bill-item">
+                      <span className="bill-item-label">Electricity</span>
+                      <span className="bill-item-value">₹{bill.electricity || 0}</span>
+                    </div>
+                  )}
+                  {!isElectricity && (
+                    <div className="bill-item">
+                      <span className="bill-item-label">Misc</span>
+                      <span className="bill-item-value">₹{bill.miscellaneous || 0}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="bill-total-row">
                   <span className="bill-total-label">Total</span>

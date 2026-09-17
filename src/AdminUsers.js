@@ -106,7 +106,7 @@ function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: ROLES[0] });
   const [editId, setEditId] = useState(null);
-  const [editUser, setEditUser] = useState({ username: '', role: ROLES[0], moveInDate: '', manualDepositAmount: '', manualDepositNotes: '' });
+  const [editUser, setEditUser] = useState({ username: '', role: ROLES[0], moveInDate: '', demandedDeposit: '', manualDepositAmount: '', manualDepositNotes: '' });
   const [updatingMoveIn, setUpdatingMoveIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -201,6 +201,7 @@ function AdminUsers() {
       username: user.username,
       role: user.role,
       moveInDate: user.moveInDate || '',
+      demandedDeposit: user.demandedDeposit != null ? user.demandedDeposit : '',
       // Deliberately blank, not pre-filled with the current total -- this
       // field adds a new deposit ledger entry, it doesn't overwrite the total.
       manualDepositAmount: '',
@@ -229,7 +230,7 @@ function AdminUsers() {
       if (!res.ok) throw new Error('Update failed');
       // After basic update, optionally update move-in date and/or record a
       // manual deposit entry if provided
-      if (editUser.moveInDate || editUser.manualDepositAmount) {
+      if (editUser.moveInDate || editUser.demandedDeposit !== '' || editUser.manualDepositAmount) {
         try {
           setUpdatingMoveIn(true);
           const depositRes = await authFetch(userMoveInDepositUrl.update(editId), {
@@ -237,6 +238,7 @@ function AdminUsers() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ...(editUser.moveInDate ? { moveInDate: editUser.moveInDate } : {}),
+              ...(editUser.demandedDeposit !== '' ? { demandedDeposit: editUser.demandedDeposit } : {}),
               ...(editUser.manualDepositAmount ? {
                 manualDepositAmount: editUser.manualDepositAmount,
                 notes: editUser.manualDepositNotes || undefined
@@ -357,6 +359,7 @@ function AdminUsers() {
             {/* Password column removed to avoid editing hashed passwords */}
             <th style={styles.th}>Role</th>
             <th style={styles.th}>Move-In Date</th>
+            <th style={styles.th}>Demanded Deposit</th>
             <th style={styles.th}>Total Deposit</th>
             <th style={{ ...styles.th, ...styles.actionsCol }}>Actions</th>
           </tr>
@@ -414,6 +417,22 @@ function AdminUsers() {
                   />
                 ) : (
                   u.moveInDate ? new Date(u.moveInDate).toLocaleDateString() : '—'
+                )}
+              </td>
+              <td style={styles.td}>
+                {editId === u.id ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    name="demandedDeposit"
+                    placeholder="e.g. 20000"
+                    value={editUser.demandedDeposit}
+                    onChange={handleEditChange}
+                    style={{ ...styles.input, width: 100 }}
+                  />
+                ) : (
+                  u.demandedDeposit != null ? `₹${u.demandedDeposit}` : '—'
                 )}
               </td>
               <td style={styles.td}>

@@ -26,11 +26,13 @@ const AdminAddBill = () => {
   const [formData, setFormData] = useState({
     tenantName: '',
     monthYear: recentMonths[1], // Default to current month
+    billType: 'RENT',
     rent: '',
     water: '',
     electricity: '',
   miscellaneous: '' // optional maintenance / balance / other charges
   });
+  const isElectricity = formData.billType === 'ELECTRICITY';
 
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +46,18 @@ const AdminAddBill = () => {
   }, []);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'billType') {
+      // Clear fields that don't apply to the new type, so a leftover value
+      // from Rent doesn't get silently submitted with an Electricity bill.
+      setFormData(prev => (
+        value === 'ELECTRICITY'
+          ? { ...prev, billType: value, rent: '', water: '', miscellaneous: '' }
+          : { ...prev, billType: value, electricity: '' }
+      ));
+      return;
+    }
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e) => {
@@ -72,12 +85,13 @@ const AdminAddBill = () => {
       setFormData({
         tenantName: '',
         monthYear: recentMonths[1],
+        billType: 'RENT',
         rent: '',
         water: '',
   electricity: '',
   miscellaneous: ''
       });
-      alert('Bill added and email sent!');
+      alert(`${isElectricity ? 'Electricity' : 'Rent'} bill added and email sent!`);
     } catch (err) {
       setError(err.message || 'Error occurred');
     } finally {
@@ -163,65 +177,94 @@ const AdminAddBill = () => {
             </option>
           ))}
         </select>
-        <input
-          name="rent"
-          placeholder="Rent"
-          value={formData.rent}
-          onChange={handleChange}
-          required
-          style={{
-            width: '100%',
-            padding: '10px',
-            marginBottom: '12px',
-            border: '1px solid #cbd5e1',
-            borderRadius: '6px',
-            fontSize: '16px',
-          }}
-        />
-        <input
-          name="water"
-          placeholder="Water Bill"
-          value={formData.water}
-          onChange={handleChange}
-          required
-          style={{
-            width: '100%',
-            padding: '10px',
-            marginBottom: '12px',
-            border: '1px solid #cbd5e1',
-            borderRadius: '6px',
-            fontSize: '16px',
-          }}
-        />
-        <input
-          name="electricity"
-          placeholder="Electricity Bill"
-          value={formData.electricity}
-          onChange={handleChange}
-          required
-          style={{
-            width: '100%',
-            padding: '10px',
-            marginBottom: '20px',
-            border: '1px solid #cbd5e1',
-            borderRadius: '6px',
-            fontSize: '16px',
-          }}
-        />
-        <input
-          name="miscellaneous"
-          placeholder="Miscellaneous / Maintenance (optional)"
-          value={formData.miscellaneous}
-          onChange={handleChange}
-          style={{
-            width: '100%',
-            padding: '10px',
-            marginBottom: '20px',
-            border: '1px solid #cbd5e1',
-            borderRadius: '6px',
-            fontSize: '16px',
-          }}
-        />
+        {/* Electricity bills consistently arrive after rent is due, so they're
+            created as a separate bill from rent/water/misc -- not bundled
+            into one bill that would have to wait on the electricity figure. */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+          <label style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            padding: '10px', border: `1px solid ${formData.billType === 'RENT' ? '#2563eb' : '#cbd5e1'}`,
+            borderRadius: '6px', cursor: 'pointer', background: formData.billType === 'RENT' ? '#eff6ff' : '#fff',
+            fontSize: '15px', color: '#0f172a',
+          }}>
+            <input type="radio" name="billType" value="RENT" checked={formData.billType === 'RENT'} onChange={handleChange} />
+            Rent
+          </label>
+          <label style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            padding: '10px', border: `1px solid ${isElectricity ? '#2563eb' : '#cbd5e1'}`,
+            borderRadius: '6px', cursor: 'pointer', background: isElectricity ? '#eff6ff' : '#fff',
+            fontSize: '15px', color: '#0f172a',
+          }}>
+            <input type="radio" name="billType" value="ELECTRICITY" checked={isElectricity} onChange={handleChange} />
+            Electricity
+          </label>
+        </div>
+        {!isElectricity && (
+          <>
+            <input
+              name="rent"
+              placeholder="Rent"
+              value={formData.rent}
+              onChange={handleChange}
+              required
+              style={{
+                width: '100%',
+                padding: '10px',
+                marginBottom: '12px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                fontSize: '16px',
+              }}
+            />
+            <input
+              name="water"
+              placeholder="Water Bill"
+              value={formData.water}
+              onChange={handleChange}
+              required
+              style={{
+                width: '100%',
+                padding: '10px',
+                marginBottom: '12px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                fontSize: '16px',
+              }}
+            />
+            <input
+              name="miscellaneous"
+              placeholder="Miscellaneous / Maintenance (optional)"
+              value={formData.miscellaneous}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '10px',
+                marginBottom: '20px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                fontSize: '16px',
+              }}
+            />
+          </>
+        )}
+        {isElectricity && (
+          <input
+            name="electricity"
+            placeholder="Electricity Bill"
+            value={formData.electricity}
+            onChange={handleChange}
+            required
+            style={{
+              width: '100%',
+              padding: '10px',
+              marginBottom: '20px',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              fontSize: '16px',
+            }}
+          />
+        )}
         <button
           type="submit"
           disabled={loading}
