@@ -7,8 +7,9 @@ function TenantBills({ username }) {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payingBillId, setPayingBillId] = useState(null); // Track which bill is being paid
-  const [moveInInfo, setMoveInInfo] = useState({ moveInDate: null, demandedDeposit: null, totalAmountDeposited: 0 });
+  const [moveInInfo, setMoveInInfo] = useState({ moveInDate: null, demandedDeposit: null, totalAmountDeposited: 0, history: [] });
   const [infoLoading, setInfoLoading] = useState(false);
+  const [showDepositHistory, setShowDepositHistory] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [payingDeposit, setPayingDeposit] = useState(false);
   const navigate = useNavigate();
@@ -24,7 +25,8 @@ function TenantBills({ username }) {
           setMoveInInfo({
             moveInDate: data.moveInDate || null,
             demandedDeposit: data.demandedDeposit != null ? Number(data.demandedDeposit) : null,
-            totalAmountDeposited: Number(data.totalAmountDeposited || 0)
+            totalAmountDeposited: Number(data.totalAmountDeposited || 0),
+            history: Array.isArray(data.history) ? data.history : []
           });
         }
       }
@@ -265,6 +267,31 @@ function TenantBills({ username }) {
             {payingDeposit ? 'Processing...' : 'Pay Deposit'}
           </button>
         </div>
+        {moveInInfo.history.length > 0 && (
+          <button
+            type="button"
+            className="deposit-history-toggle"
+            onClick={() => setShowDepositHistory(v => !v)}
+          >
+            {showDepositHistory ? 'Hide' : 'View'} deposit payment history ({moveInInfo.history.length})
+          </button>
+        )}
+        {showDepositHistory && moveInInfo.history.length > 0 && (
+          <div className="deposit-history-list">
+            {moveInInfo.history.map((entry) => (
+              <div className="deposit-history-row" key={entry.id}>
+                <span className="deposit-history-date">
+                  {entry.paidDate ? new Date(entry.paidDate).toLocaleDateString() : '—'}
+                </span>
+                <span className="deposit-history-source">
+                  {entry.source === 'razorpay' ? 'Paid online' : 'Recorded by admin'}
+                  {entry.notes ? ` · ${entry.notes}` : ''}
+                </span>
+                <span className="deposit-history-amount">₹{entry.amount}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {bills.length === 0 ? (
