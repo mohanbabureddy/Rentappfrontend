@@ -79,6 +79,8 @@ export default function AdminViewBills() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterType, setFilterType] = useState('ALL');
 
   // Auth guard: only ADMINs allowed
   useEffect(() => {
@@ -143,6 +145,18 @@ export default function AdminViewBills() {
     setEditForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // Newest month first (YYYY-MM sorts correctly as a string)
+  const availableMonths = Array.from(new Set(bills.map(b => b.monthYear))).sort().reverse();
+
+  const visibleBills = bills.filter(b => {
+    if (filterMonth && b.monthYear !== filterMonth) return false;
+    if (filterType !== 'ALL') {
+      const type = b.billType === 'ELECTRICITY' ? 'ELECTRICITY' : 'RENT';
+      if (type !== filterType) return false;
+    }
+    return true;
+  });
+
   const handleUpdate = async () => {
   // only pull out what you actually use
   const { tenantName, monthYear } = editForm;
@@ -179,6 +193,32 @@ export default function AdminViewBills() {
       {error && <div style={styles.error}>{error}</div>}
       {loading && <div style={styles.loading}>Loading…</div>}
 
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px', alignItems: 'center' }}>
+        <select
+          value={filterMonth}
+          onChange={e => setFilterMonth(e.target.value)}
+          style={{ padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', background: '#fff', color: '#0f172a' }}
+        >
+          <option value="">All months</option>
+          {availableMonths.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+        {['ALL', 'RENT', 'ELECTRICITY'].map(t => (
+          <button
+            key={t}
+            onClick={() => setFilterType(t)}
+            style={{
+              background: filterType === t ? 'linear-gradient(90deg,#2563eb,#38bdf8)' : '#e2e8f0',
+              color: filterType === t ? '#fff' : '#334155',
+              border: 'none', borderRadius: '18px', padding: '7px 16px',
+              fontWeight: 'bold', fontSize: '13px', cursor: 'pointer',
+            }}
+          >{t === 'ALL' ? 'All types' : t.charAt(0) + t.slice(1).toLowerCase()}</button>
+        ))}
+        <span style={{ fontSize: '13px', color: '#64748b' }}>{visibleBills.length} bill(s)</span>
+      </div>
+
       <div style={styles.tableWrapper}>
         <table style={styles.table}>
           <thead>
@@ -189,7 +229,10 @@ export default function AdminViewBills() {
             </tr>
           </thead>
           <tbody>
-            {bills.map((b, idx) => (
+            {visibleBills.length === 0 && (
+              <tr><td colSpan={11} style={{ ...styles.td, padding: '24px', fontStyle: 'italic', color: '#64748b' }}>No bills match this filter.</td></tr>
+            )}
+            {visibleBills.map((b, idx) => (
               <tr
                 key={b.id}
                 style={{
