@@ -22,6 +22,9 @@ const RAISE_WORDS = /\b(raise|file|register|make|submit|lodge|new|give|post|crea
 const VIEW_COMPLAINTS = /\b(my|open|pending|show|view|list|check|see|track)\b(\s+\w+){0,2}\s+complaints?\b|\bcomplaints?\s+(status|list|history)\b/i;
 const isViewComplaints = (t) => !RAISE_WORDS.test(t) && VIEW_COMPLAINTS.test(t) && !/\b(about|regarding|because|since)\b/i.test(t);
 
+// Tolerate typos like "compalint", "complant", "compliant" when matching intent
+const normalizeComplaintWord = (t) => t.replace(/\bcomp[a-z]{2,5}nts?\b/gi, 'complaint');
+
 export default function ChatAssistant({ username }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -99,6 +102,7 @@ export default function ChatAssistant({ username }) {
   const send = async (e) => {
     e.preventDefault();
     const text = input.trim();
+    const intentText = normalizeComplaintWord(text);
     if (!text || sending) return;
     setError('');
     setMessages(m => [...m, { role: 'user', text }]);
@@ -116,11 +120,11 @@ export default function ChatAssistant({ username }) {
       }]);
       return;
     }
-    if (!WITHDRAW_HINT.test(text) && isViewComplaints(text)) {
+    if (!WITHDRAW_HINT.test(intentText) && isViewComplaints(intentText)) {
       loadComplaints(false);
       return;
     }
-    if (!WITHDRAW_HINT.test(text) && isGenericComplaint(text)) {
+    if (!WITHDRAW_HINT.test(intentText) && isGenericComplaint(intentText)) {
       setAwaitingComplaint(true);
       setMessages(m => [...m, {
         role: 'assistant',
@@ -128,11 +132,11 @@ export default function ChatAssistant({ username }) {
       }]);
       return;
     }
-    if (WITHDRAW_HINT.test(text)) {
+    if (WITHDRAW_HINT.test(intentText)) {
       loadComplaints(true);
       return;
     }
-    if (PAYMENT_DISPUTE.test(text) && /paid|deducted|debited/i.test(text)) {
+    if (PAYMENT_DISPUTE.test(intentText) && /paid|deducted|debited/i.test(text)) {
       setMessages(m => [...m, {
         role: 'assistant',
         text: "Please don't pay again. First refresh the My Bills page - a payment can take a minute to show. If the bill still shows Unpaid, tap the button below to report it to the property manager, and keep your payment ID (it starts with pay_) from the Razorpay receipt or email.",
@@ -140,7 +144,7 @@ export default function ChatAssistant({ username }) {
       }]);
       return;
     }
-    if (COMPLAINT_HINT.test(text)) {
+    if (COMPLAINT_HINT.test(intentText)) {
       // Answered locally: a small model tends to claim it already filed the
       // complaint or offer actions it can't perform.
       setMessages(m => [...m, {
