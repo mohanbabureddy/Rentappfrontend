@@ -92,7 +92,12 @@ function CodeTraceView({ events, truncated }) {
   );
 }
 
-export default function ChatAssistant({ username }) {
+// "logout", "log out", "please sign out" (a short command) logs the tenant out.
+// A longer sentence such as "how do I logout?" only gets instructions.
+const LOGOUT_WORDS = /\b(log ?(me )?out|log ?(me )?off|sign ?(me )?out)\b/i;
+const isLogoutCommand = (t) => t.trim().split(/\s+/).length <= 5 && !/\?|\b(how|where|what|why|can|could|should|do|does)\b/i.test(t);
+
+export default function ChatAssistant({ username, onLogout }) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const [messages, setMessages] = useState([
@@ -123,6 +128,16 @@ export default function ChatAssistant({ username }) {
     const check = (label, cond) => { steps.push(`Browser check - ${label}: ${cond ? 'YES' : 'no'}`); return cond; };
     const answeredHere = (why) => steps.push(`Browser: ${why} -> answered right here, nothing sent to the server or AI model`);
 
+    if (check('logout words', LOGOUT_WORDS.test(text))) {
+      if (isLogoutCommand(text) && onLogout) {
+        answeredHere('logs you out');
+        reply({ text: 'Logging you out. Goodbye!' }, steps);
+        setTimeout(onLogout, 900);
+      } else {
+        reply({ text: 'To log out, type "logout" here, or tap the Logout button at the top right of the page.' }, steps);
+      }
+      return;
+    }
     if (check('document/ID words (upload, Aadhaar, passport...)', DOCUMENT_HINT.test(text))) {
       answeredHere('shows the upload guide with a Go to Occupants button');
       reply({

@@ -213,7 +213,7 @@ function App() {
             <span style={{opacity:0.8}}>Version {APP_VERSION} ({FRONTEND_COMMIT})</span>
             {backendCommit && <span style={{opacity:0.8,marginLeft:8}}>· API {backendCommit}</span>}
           </div>
-          {user.role !== 'ADMIN' && <ChatAssistant username={user.username} />}
+          {user.role !== 'ADMIN' && <ChatAssistant username={user.username} onLogout={handleLogout} />}
         </div>
       )}
     </Router>
