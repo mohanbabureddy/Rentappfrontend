@@ -4,6 +4,12 @@ import { url, authFetch, userMoveInDepositUrl } from './apiClient';
 
 const ROLES = ['ADMIN', 'TENANT'];
 
+// Admins first, then tenants in natural order: Room1, Room2, ... Room10 (not Room1, Room10, Room2).
+const sortUsers = (list) => [...list].sort((a, b) =>
+  (a.role === 'ADMIN' ? 0 : 1) - (b.role === 'ADMIN' ? 0 : 1) ||
+  a.username.localeCompare(b.username, undefined, { numeric: true, sensitivity: 'base' })
+);
+
 const styles = {
   container: {
     maxWidth: '900px',
@@ -144,7 +150,7 @@ function AdminUsers() {
   const res = await authFetch(url.adminUsersAll());
       if (!res.ok) throw new Error('Failed to fetch users');
   const data = await res.json();
-  setUsers(data);
+  setUsers(sortUsers(data));
     } catch (err) {
       console.error(err);
       setError('Unable to load users');
@@ -245,7 +251,8 @@ function AdminUsers() {
     try {
       // Exclude password from update (prevents sending hashed value back & double hashing backend)
       const { username, role, phone, fullName } = editUser;
-      const basePayload = { username, role, ...(phone ? { phone } : {}), ...(fullName.trim() ? { fullName: fullName.trim() } : {}) };
+      // Empty phone / name are sent as empty strings so they can be cleared.
+      const basePayload = { username, role, phone: phone.trim(), fullName: fullName.trim() };
       const res = await authFetch(url.adminUserUpdate(editId), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
