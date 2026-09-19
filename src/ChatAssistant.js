@@ -6,6 +6,22 @@ const COMPLAINT_HINT = /complain|not working|broken|leak|problem|issue|repair|no
 // "I paid but it still shows unpaid" style messages
 const PAYMENT_DISPUTE = /(paid|payment|deducted|debited).*(not|still|unpaid|pending|showing|failed|missing)|(not|still|unpaid|pending).*(paid|payment|deducted|debited)/i;
 
+const WITHDRAW_HINT = /(withdraw|cancel|delete|remove|take back|close).*complain|complain.*(withdraw|cancel|delete|remove|take back|close)/i;
+
+// "I want to raise a complaint" with no actual problem described yet
+const GENERIC_WORDS = new Set('i want need would like to a an my the raise file register make submit lodge give post send create new complaint complaints please can could how do you me let want'.split(' '));
+const isGenericComplaint = (t) => {
+  const words = t.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean);
+  return words.includes('complaint') || words.includes('complain')
+    ? words.every(w => GENERIC_WORDS.has(w) || w === 'complain')
+    : false;
+};
+
+// "my complaint(s)", "open complaints", "complaint status" -> show them, don't start a new one
+const RAISE_WORDS = /\b(raise|file|register|make|submit|lodge|new|give|post|create|another)\b/i;
+const VIEW_COMPLAINTS = /\b(my|open|pending|show|view|list|check|see|track)\b(\s+\w+){0,2}\s+complaints?\b|\bcomplaints?\s+(status|list|history)\b/i;
+const isViewComplaints = (t) => !RAISE_WORDS.test(t) && VIEW_COMPLAINTS.test(t) && !/\b(about|regarding|because|since)\b/i.test(t);
+
 export default function ChatAssistant({ username }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -16,6 +32,46 @@ export default function ChatAssistant({ username }) {
   const [error, setError] = useState('');
   const bottomRef = useRef(null);
   const [filingIdx, setFilingIdx] = useState(null);
+  const [awaitingComplaint, setAwaitingComplaint] = useState(false);
+
+  const withdrawComplaint = async (idx, id) => {
+    setFilingIdx(idx);
+    setError('');
+    try {
+      const res = await authFetch(url.complaintsWithdraw(id), { method: 'PUT' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Could not withdraw the complaint. Please try again.');
+      }
+      setMessages(m => m.map((x, i) => i === idx
+        ? { ...x, openComplaints: x.openComplaints.filter(c => c.id !== id) } : x)
+        .concat({ role: 'assistant', text: 'Done - your complaint has been withdrawn.' }));
+    } catch (err) {
+      setError(err.message || 'Could not withdraw the complaint. Please try again.');
+    } finally {
+      setFilingIdx(null);
+    }
+  };
+
+  const loadComplaints = async (forWithdraw) => {
+    setSending(true);
+    try {
+      const res = await authFetch(url.complaintsList(username));
+      const list = res.ok ? await res.json() : [];
+      const open = Array.isArray(list) ? list.filter(c => c.status === 'OPEN') : [];
+      setMessages(m => [...m, open.length === 0
+        ? { role: 'assistant', text: forWithdraw ? 'You have no open complaints to withdraw.' : 'You have no open complaints.' }
+        : {
+            role: 'assistant',
+            text: forWithdraw ? 'Which complaint do you want to withdraw?' : `You have ${open.length} open complaint${open.length > 1 ? 's' : ''}:`,
+            openComplaints: open
+          }]);
+    } catch {
+      setError('Could not load your complaints. Please try again.');
+    } finally {
+      setSending(false);
+    }
+  };
 
   const fileComplaint = async (idx, description) => {
     setFilingIdx(idx);
@@ -47,6 +103,35 @@ export default function ChatAssistant({ username }) {
     setError('');
     setMessages(m => [...m, { role: 'user', text }]);
     setInput('');
+    if (awaitingComplaint) {
+      setAwaitingComplaint(false);
+      if (/^(cancel|never ?mind|no|stop)\.?$/i.test(text)) {
+        setMessages(m => [...m, { role: 'assistant', text: 'Okay, I have not submitted anything.' }]);
+        return;
+      }
+      setMessages(m => [...m, {
+        role: 'assistant',
+        text: 'Tap the button to submit this complaint to the property manager, or type "cancel".',
+        complaintText: text
+      }]);
+      return;
+    }
+    if (!WITHDRAW_HINT.test(text) && isViewComplaints(text)) {
+      loadComplaints(false);
+      return;
+    }
+    if (!WITHDRAW_HINT.test(text) && isGenericComplaint(text)) {
+      setAwaitingComplaint(true);
+      setMessages(m => [...m, {
+        role: 'assistant',
+        text: 'Sure. Please type your complaint in detail (what the problem is and where), and I will show a button to submit it.'
+      }]);
+      return;
+    }
+    if (WITHDRAW_HINT.test(text)) {
+      loadComplaints(true);
+      return;
+    }
     if (PAYMENT_DISPUTE.test(text) && /paid|deducted|debited/i.test(text)) {
       setMessages(m => [...m, {
         role: 'assistant',
@@ -103,6 +188,15 @@ export default function ChatAssistant({ username }) {
         {messages.map((m, i) => (
           <div key={i} style={m.role === 'user' ? bubbleUser : bubbleBot}>
             {m.text}
+            {m.openComplaints && m.openComplaints.map(c => (
+              <div key={c.id} style={{ marginTop: 8, fontSize: 12 }}>
+                <div style={{ color: '#64748b' }}>{c.createdDate ? new Date(c.createdDate).toLocaleDateString() : ''}</div>
+                <div style={{ marginBottom: 4 }}>"{c.description.length > 80 ? c.description.slice(0, 80) + '…' : c.description}"</div>
+                <button onClick={() => withdrawComplaint(i, c.id)} disabled={filingIdx === i} style={complaintBtn}>
+                  {filingIdx === i ? 'Withdrawing…' : 'Withdraw this'}
+                </button>
+              </div>
+            ))}
             {m.complaintText && (
               <div style={{ marginTop: 8 }}>
                 <button

@@ -45,6 +45,21 @@ function TenantComplaints({ username }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
+  const withdraw = async (c) => {
+    if (!window.confirm('Withdraw this complaint?')) return;
+    try {
+      const resp = await authFetch(url.complaintsWithdraw(c.id), { method: 'PUT' });
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data.error || 'Could not withdraw the complaint');
+      }
+      setMessage({ type: 'success', text: 'Complaint withdrawn.' });
+      fetchComplaints();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Could not withdraw the complaint' });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!description.trim()) {
@@ -185,6 +200,15 @@ function TenantComplaints({ username }) {
                       fontSize: '12px',
                       fontWeight: 'bold'
                     }}>{c.status}</span>
+                    {c.status === 'OPEN' && typeof c.id === 'number' && (
+                      <div style={{ marginTop: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => withdraw(c)}
+                          style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '12px', fontWeight: 600, textDecoration: 'underline', cursor: 'pointer', padding: 0 }}
+                        >Withdraw</button>
+                      </div>
+                    )}
                   </td>
                   <td style={{ ...thTdStyle, textAlign: 'left', fontSize: '12px', color: '#475569' }}>
                     {c.status === 'CLOSED' && c.resolutionComment ? (

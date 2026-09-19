@@ -35,6 +35,7 @@ export const url = {
   logPaymentSuccess: () => `${API_BASE}${API_PREFIX}/tenants/logSuccess`,
   logPaymentFailure: () => `${API_BASE}${API_PREFIX}/tenants/logFailure`,
   complaintsList: (tenant) => `${API_BASE}${API_PREFIX}/tenants/complaints/${encodeURIComponent(tenant)}`,
+  complaintsWithdraw: (id) => `${API_BASE}${API_PREFIX}/tenants/complaints/${id}/withdraw`,
   complaintsAdd: () => `${API_BASE}${API_PREFIX}/tenants/complaints`,
   adminUsersAll: () => `${API_BASE}${API_PREFIX}/users/all`,
   adminUserAdd: () => `${API_BASE}${API_PREFIX}/users/add`,
