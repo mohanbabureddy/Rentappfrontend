@@ -11,6 +11,7 @@ export default function Registration() {
   const [finished, setFinished] = useState(false);
   const [form, setForm] = useState({
     username: '',
+    fullName: '',
     email: '',
     phone: '',
     otp: '',
@@ -41,7 +42,7 @@ export default function Registration() {
   const start = async (e)=>{
     e.preventDefault();
     setErr(''); setMsg('');
-  if(!form.username||!form.email||!form.phone){setErr('All fields required');return;}
+  if(!form.username||!form.fullName.trim()||!form.email||!form.phone){setErr('All fields required');return;}
   if(!accepted){setErr('You must accept Terms & Refund Policy');return;}
     setLoading(true);
     try{
@@ -50,6 +51,7 @@ export default function Registration() {
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           username:form.username.trim(),
+          fullName:form.fullName.trim(),
           email:form.email.trim(),
           phone:form.phone.trim()
         }),
@@ -132,6 +134,8 @@ export default function Registration() {
         <form onSubmit={start}>
           <input name="username" placeholder="Username (from admin)"
                  value={form.username} onChange={onChange} style={inputStyle}/>
+          <input name="fullName" placeholder="Full name (as on your ID)"
+                 value={form.fullName} onChange={onChange} style={inputStyle}/>
           <input name="email" type="email" placeholder="Email"
                  value={form.email} onChange={onChange} style={inputStyle}/>
           <input name="phone" type="tel" inputMode="numeric" placeholder="Mobile number (10 digits)"

@@ -141,7 +141,7 @@ function App() {
               Rent Management
             </div>
             <div>
-              Logged in as: <strong>{user.username}</strong> ({user.role})
+              Welcome, <strong>{user.fullName || user.username}</strong>{user.role === 'ADMIN' && ' (Admin)'}
               <button
                 style={{
                   marginLeft: '16px',

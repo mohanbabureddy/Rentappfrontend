@@ -48,7 +48,7 @@ const styles = {
   },
   table: {
     width: '100%',
-    minWidth: '860px',
+    minWidth: '980px',
     borderCollapse: 'collapse',
     background: '#fff',
     borderRadius: '12px',
@@ -110,7 +110,7 @@ function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: ROLES[0] });
   const [editId, setEditId] = useState(null);
-  const [editUser, setEditUser] = useState({ username: '', role: ROLES[0], phone: '', moveInDate: '', demandedDeposit: '', manualDepositAmount: '', manualDepositNotes: '' });
+  const [editUser, setEditUser] = useState({ username: '', role: ROLES[0], fullName: '', phone: '', moveInDate: '', demandedDeposit: '', manualDepositAmount: '', manualDepositNotes: '' });
   const [updatingMoveIn, setUpdatingMoveIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -204,6 +204,7 @@ function AdminUsers() {
     setEditUser({
       username: user.username,
       role: user.role,
+      fullName: user.fullName || '',
       phone: user.phone || '',
       moveInDate: user.moveInDate || '',
       demandedDeposit: user.demandedDeposit != null ? user.demandedDeposit : '',
@@ -225,8 +226,8 @@ function AdminUsers() {
     setLoading(true);
     try {
       // Exclude password from update (prevents sending hashed value back & double hashing backend)
-      const { username, role, phone } = editUser;
-      const basePayload = { username, role, ...(phone ? { phone } : {}) };
+      const { username, role, phone, fullName } = editUser;
+      const basePayload = { username, role, ...(phone ? { phone } : {}), ...(fullName.trim() ? { fullName: fullName.trim() } : {}) };
       const res = await authFetch(url.adminUserUpdate(editId), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -366,6 +367,7 @@ function AdminUsers() {
             <th style={styles.th}>ID</th>
             <th style={{ ...styles.th, ...styles.usernameCol }}>Username</th>
             {/* Password column removed to avoid editing hashed passwords */}
+            <th style={styles.th}>Full Name</th>
             <th style={styles.th}>Role</th>
             <th style={styles.th}>Phone</th>
             <th style={styles.th}>Move-In Date</th>
@@ -400,6 +402,19 @@ function AdminUsers() {
 
               {/* Password cell removed */}
 
+              <td style={styles.td}>
+                {editId === u.id ? (
+                  <input
+                    name="fullName"
+                    placeholder="Full name"
+                    value={editUser.fullName}
+                    onChange={handleEditChange}
+                    style={{ ...styles.input, width: 130 }}
+                  />
+                ) : (
+                  u.fullName || '—'
+                )}
+              </td>
               <td style={styles.td}>
                 {editId === u.id ? (
                   <select
