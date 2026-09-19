@@ -38,6 +38,60 @@ const complaintReply = (intentText) => {
   return 'To raise a complaint, open the Complaints page, describe the problem in the box and tap Submit Complaint. You can track its status there too.';
 };
 
+// Debug view (local only): set REACT_APP_CHAT_DEBUG=true in frontend/.env
+const DEBUG = process.env.REACT_APP_CHAT_DEBUG === 'true';
+
+// Debug walkthrough: reveals the steps one at a time
+function TraceView({ trace }) {
+  const [shown, setShown] = useState(1);
+  const done = shown >= trace.length;
+  return (
+    <details className="chat-trace">
+      <summary>How this was answered ({trace.length} steps)</summary>
+      <ol>{trace.slice(0, shown).map((t, k) => <li key={k}>{t}</li>)}</ol>
+      <div className="chat-trace-actions">
+        {!done && <button type="button" onClick={() => setShown(n => n + 1)}>Next step &#9654;</button>}
+        {!done && <button type="button" onClick={() => setShown(trace.length)}>Show all</button>}
+        {shown > 1 && <button type="button" onClick={() => setShown(1)}>Restart</button>}
+        {done && <span className="chat-trace-done">End of flow</span>}
+      </div>
+    </details>
+  );
+}
+
+// Debug: real line-by-line code replay (like an IDE debugger), one line at a time
+function CodeTraceView({ events, truncated }) {
+  const [shown, setShown] = useState(1);
+  const boxRef = useRef(null);
+  const done = shown >= events.length;
+  useEffect(() => {
+    if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight;
+  }, [shown]);
+  const row = (e, k) => {
+    const pad = '  '.repeat(e.depth || 0);
+    const where = e.line ? `${e.file}:${e.line}` : e.file;
+    const isLast = k === shown - 1;
+    let text;
+    if (e.type === 'call') text = `${pad}>> ${where}  ${e.func}()`;
+    else if (e.type === 'return') text = `${pad}<< return from ${e.func}()`;
+    else text = `${pad}${where}   ${e.code}`;
+    return <div key={k} className={`code-row ${e.type}${isLast ? ' current' : ''}`}>{text}</div>;
+  };
+  return (
+    <details className="chat-trace">
+      <summary>Code walkthrough, line by line ({events.length} lines)</summary>
+      <div className="code-box" ref={boxRef}>{events.slice(0, shown).map(row)}</div>
+      <div className="chat-trace-actions">
+        {!done && <button type="button" onClick={() => setShown(n => n + 1)}>Next line &#9654;</button>}
+        {!done && <button type="button" onClick={() => setShown(n => Math.min(n + 10, events.length))}>+10 lines</button>}
+        {!done && <button type="button" onClick={() => setShown(events.length)}>Show all</button>}
+        {shown > 1 && <button type="button" onClick={() => setShown(1)}>Restart</button>}
+        <span className="chat-trace-done">{shown}/{events.length}{done ? (truncated ? ' (cut off at the limit)' : ' - end of flow') : ''}</span>
+      </div>
+    </details>
+  );
+}
+
 export default function ChatAssistant({ username }) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -53,7 +107,7 @@ export default function ChatAssistant({ username }) {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, open]);
 
-  const reply = (msg) => setMessages(m => [...m, { role: 'assistant', ...msg }]);
+  const reply = (msg, trace, codeTrace, codeTraceTruncated) => setMessages(m => [...m, { role: 'assistant', ...msg, trace, codeTrace, codeTraceTruncated }]);
 
   const send = async (e) => {
     e.preventDefault();
@@ -64,7 +118,13 @@ export default function ChatAssistant({ username }) {
     setMessages(m => [...m, { role: 'user', text }]);
     setInput('');
 
-    if (DOCUMENT_HINT.test(text)) {
+    const steps = [`Browser: you typed "${text}"`];
+    if (intentText !== text) steps.push(`Browser: spelling fixed for matching -> "${intentText}"`);
+    const check = (label, cond) => { steps.push(`Browser check - ${label}: ${cond ? 'YES' : 'no'}`); return cond; };
+    const answeredHere = (why) => steps.push(`Browser: ${why} -> answered right here, nothing sent to the server or AI model`);
+
+    if (check('document/ID words (upload, Aadhaar, passport...)', DOCUMENT_HINT.test(text))) {
+      answeredHere('shows the upload guide with a Go to Occupants button');
       reply({
         text: [
           'You can upload your documents (Aadhaar, passport, photo ID or other ID proof) on the Occupants page:',
@@ -76,26 +136,42 @@ export default function ChatAssistant({ username }) {
         ].join('\n'),
         navigateTo: '/occupants',
         navigateLabel: 'Go to Occupants'
-      });
+      }, steps);
       return;
     }
-    if (PAYMENT_DISPUTE.test(intentText) && /paid|deducted|debited/i.test(text)) {
+    if (check('"withdraw"/"refund" alone (no complaint or deposit word)', /\b(withdraw|refund)\b/i.test(text) && !COMPLAINT_WORD.test(intentText) && !/deposit|advance/i.test(text))) {
+      answeredHere('asks whether you meant a complaint or the deposit');
+      reply({
+        text: [
+          'Did you mean a complaint or your security deposit?',
+          '- Complaint: open the Complaints page and tap Withdraw next to it.',
+          '- Deposit: refunds are not done in this app. The owner settles it with you directly when you move out. Ask me "owner details" for their contact.'
+        ].join('\n'),
+        navigateTo: '/complaints',
+        navigateLabel: 'Go to Complaints'
+      }, steps);
+      return;
+    }
+    if (check('"I paid but it shows unpaid" pattern', PAYMENT_DISPUTE.test(intentText) && /paid|deducted|debited/i.test(text))) {
+      answeredHere('tells you not to pay again and points to Complaints');
       reply({
         text: "Please don't pay again. First refresh the My Bills page - a payment can take a minute to show. If the bill still shows Unpaid, raise a complaint on the Complaints page and include your payment ID (it starts with pay_) from the Razorpay receipt or email.",
         navigateTo: '/complaints',
         navigateLabel: 'Go to Complaints'
-      });
+      }, steps);
       return;
     }
-    if (COMPLAINT_WORD.test(intentText) || COMPLAINT_PROBLEM.test(intentText)) {
+    if (check('complaint or problem words (complaint, leak, broken...)', COMPLAINT_WORD.test(intentText) || COMPLAINT_PROBLEM.test(intentText))) {
+      answeredHere('shows the complaint guide with a Go to Complaints button');
       reply({
         text: complaintReply(intentText),
         navigateTo: '/complaints',
         navigateLabel: 'Go to Complaints'
-      });
+      }, steps);
       return;
     }
 
+    steps.push('Browser: no browser rule matched -> sending the question to the server (POST /api/assistant/ask)');
     setSending(true);
     try {
       const res = await authFetch(url.assistantAsk(), {
@@ -105,7 +181,23 @@ export default function ChatAssistant({ username }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      reply({ text: data.answer || '(no answer)' });
+      const browserOut = [
+        { type: 'line', file: 'ChatAssistant.js', func: 'send', depth: 0, code: "const res = await authFetch(url.assistantAsk(), { method: 'POST', ... body: JSON.stringify({ message: text }) });" },
+        { type: 'call', file: 'apiClient.js', func: 'authFetch', depth: 1 },
+        { type: 'line', file: 'apiClient.js', func: 'authFetch', depth: 1, code: 'return fetch(input, { credentials: FETCH_CREDENTIALS, ...init, headers: authHeaders(init.headers || {}) });' },
+        { type: 'line', file: 'NETWORK', func: 'fetch', depth: 0, code: 'HTTP POST /api/assistant/ask  (browser -> Flask backend, with the Bearer token)' }
+      ];
+      const browserIn = [
+        { type: 'line', file: 'NETWORK', func: 'fetch', depth: 0, code: 'HTTP 200 response comes back (JSON with the answer)' },
+        { type: 'line', file: 'ChatAssistant.js', func: 'send', depth: 0, code: "reply({ text: data.answer || '(no answer)' }, ...);  -> the message appears in the chat" }
+      ];
+      const serverEvents = data.codeTrace || [];
+      reply(
+        { text: data.answer || '(no answer)' },
+        steps.concat((data.trace || []).map(t => `Server: ${t}`)),
+        serverEvents.length ? browserOut.concat(serverEvents, browserIn) : undefined,
+        data.codeTraceTruncated
+      );
     } catch (err) {
       setError(err.message || 'Something went wrong.');
     } finally {
@@ -122,7 +214,7 @@ export default function ChatAssistant({ username }) {
   }
 
   return (
-    <div className="chat-panel">
+    <div className={`chat-panel${DEBUG ? ' debug' : ''}`}>
       <div className="chat-header">
         <div className="chat-avatar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="8" width="16" height="11" rx="3" /><path d="M12 8V4M9 13h.01M15 13h.01" /></svg>
@@ -137,6 +229,10 @@ export default function ChatAssistant({ username }) {
         {messages.map((m, i) => (
           <div key={i} className={`chat-msg ${m.role === 'user' ? 'user' : 'bot'}`}>
             {m.text}
+            {DEBUG && m.trace && (
+              <TraceView trace={m.trace} />
+            )}
+            {DEBUG && m.codeTrace && <CodeTraceView events={m.codeTrace} truncated={m.codeTraceTruncated} />}
             {m.navigateTo && (
               <div className="chat-action">
                 <button onClick={() => { navigate(m.navigateTo); setOpen(false); }} className="chat-btn">
