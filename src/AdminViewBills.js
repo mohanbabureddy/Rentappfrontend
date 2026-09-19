@@ -326,7 +326,7 @@ export default function AdminViewBills() {
                       maxLength={7}
                     />
                   ) : (
-                    b.miscellaneous || '-'
+                    b.billType === 'ELECTRICITY' ? '-' : (b.miscellaneous || 0)
                   )}
                 </td>
 

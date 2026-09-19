@@ -4,6 +4,7 @@ import TenantBills from './TenantBills';
 import TenantComplaints from './TenantComplaints';
 import TenantOccupants from './TenantOccupants';
 import AdminAddBill from './AdminAddBill';
+import AdminBulkBills from './AdminBulkBills';
 import AdminUsers from './AdminUsers';
 import AdminViewBills from './AdminViewBills';
 import AdminPaidBillsReport from './AdminPaidBillsReport';
@@ -172,6 +173,7 @@ function App() {
             {user.role === "ADMIN" ? (
               <>
                 <Link to="/admin/add-bill" style={navLinkStyle}>Add Bill</Link>
+                <Link to="/admin/bulk-bills" style={navLinkStyle}>Bulk Bills</Link>
                 <Link to="/admin/view-bills" style={navLinkStyle}>View Bills</Link>
                 <Link to="/admin/users" style={navLinkStyle}>Manage Users</Link>
                 <Link to="/admin/paid-report" style={navLinkStyle}>Paid Report</Link>
@@ -196,6 +198,7 @@ function App() {
             {user.role === "ADMIN" && (
               <>
                 <Route path="/admin/add-bill" element={<AdminAddBill />} />
+                <Route path="/admin/bulk-bills" element={<AdminBulkBills />} />
                 <Route path="/admin/view-bills" element={<AdminViewBills />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
                 <Route path="/admin/paid-report" element={<AdminPaidBillsReport />} />

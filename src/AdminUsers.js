@@ -108,14 +108,14 @@ const styles = {
 function AdminUsers() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
-  const [newUser, setNewUser] = useState({ username: '', password: '', role: ROLES[0] });
+  const emptyNewUser = { username: '', role: 'TENANT', moveInDate: '', demandedDeposit: '', depositPaid: '' };
+  const [newUser, setNewUser] = useState(emptyNewUser);
   const [editId, setEditId] = useState(null);
   const [editUser, setEditUser] = useState({ username: '', role: ROLES[0], fullName: '', phone: '', moveInDate: '', demandedDeposit: '', manualDepositAmount: '', manualDepositNotes: '' });
   const [updatingMoveIn, setUpdatingMoveIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // only for add user form
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -163,15 +163,16 @@ function AdminUsers() {
   };
 
   const handleAddUser = async () => {
-    if (!newUser.username || !newUser.password || !newUser.role) {
-      return alert('All fields are required to add a user');
+    if (!newUser.username.trim()) {
+      return alert('Enter a username, for example Room1');
     }
     setLoading(true);
     try {
+      // No password here: the tenant chooses their own when they register.
       const res = await authFetch(url.adminUserAdd(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser)
+        body: JSON.stringify({ username: newUser.username.trim(), role: newUser.role })
       });
       if (!res.ok) {
         // Try to extract backend error message (JSON or text) so duplicate user errors show up.
@@ -189,7 +190,24 @@ function AdminUsers() {
         }
         throw new Error(backendMsg ? `Add failed: ${backendMsg}` : 'Add failed');
       }
-      setNewUser({ username: '', password: '', role: ROLES[0] });
+      const created = await res.json().catch(() => ({}));
+      const hasDetails = newUser.role === 'TENANT' && (newUser.moveInDate || newUser.demandedDeposit !== '' || newUser.depositPaid !== '');
+      if (created.id && hasDetails) {
+        const detailsRes = await authFetch(userMoveInDepositUrl.update(created.id), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...(newUser.moveInDate ? { moveInDate: newUser.moveInDate } : {}),
+            ...(newUser.demandedDeposit !== '' ? { demandedDeposit: newUser.demandedDeposit } : {}),
+            ...(newUser.depositPaid !== '' ? { manualDepositAmount: newUser.depositPaid, notes: 'Deposit paid before joining the app' } : {})
+          })
+        });
+        if (!detailsRes.ok) {
+          const detailsErr = await detailsRes.json().catch(() => ({}));
+          alert(`User added, but the move-in/deposit details were not saved: ${detailsErr.error || 'unknown error'}. Add them with Edit.`);
+        }
+      }
+      setNewUser(emptyNewUser);
       await fetchUsers();
     } catch (err) {
       console.error(err);
@@ -311,7 +329,11 @@ function AdminUsers() {
       {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
 
       <div style={styles.card}>
-        <h4 style={{ color: '#2563eb', marginBottom: '16px' }}>Add New User</h4>
+        <h4 style={{ color: '#2563eb', marginBottom: '6px' }}>Add New User</h4>
+        <p style={{ margin: '0 0 14px', fontSize: 13, color: '#64748b' }}>
+          Enter only the username (for example Room1). The tenant sets their own password, name and contact details when they register.
+          Move-in date and deposit are optional and can also be added later with Edit.
+        </p>
         <input
           name="username"
           placeholder="Username"
@@ -319,21 +341,6 @@ function AdminUsers() {
           onChange={handleAddChange}
           style={styles.input}
         />
-        <input
-          name="password"
-          type={showPassword ? 'text' : 'password'}
-          placeholder="Password"
-          value={newUser.password}
-          onChange={handleAddChange}
-          style={styles.input}
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword(v => !v)}
-          style={{ ...styles.actionBtn, background: '#f1f5f9', color: '#2563eb', border: '1px solid #2563eb' }}
-        >
-          {showPassword ? 'Hide' : 'Show'}
-        </button>
         <select
           name="role"
           value={newUser.role}
@@ -344,6 +351,38 @@ function AdminUsers() {
             <option key={role} value={role}>{role}</option>
           ))}
         </select>
+        {newUser.role === 'TENANT' && (
+          <>
+            <input
+              name="moveInDate"
+              type="date"
+              title="Move-in date (optional)"
+              value={newUser.moveInDate}
+              onChange={handleAddChange}
+              style={styles.input}
+            />
+            <input
+              name="demandedDeposit"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Demanded deposit"
+              value={newUser.demandedDeposit}
+              onChange={handleAddChange}
+              style={{ ...styles.input, width: 140 }}
+            />
+            <input
+              name="depositPaid"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Deposit paid so far"
+              value={newUser.depositPaid}
+              onChange={handleAddChange}
+              style={{ ...styles.input, width: 150 }}
+            />
+          </>
+        )}
         <button disabled={loading} onClick={handleAddUser} style={styles.btnPrimary}>
           {loading ? 'Please wait…' : 'Add'}
         </button>
