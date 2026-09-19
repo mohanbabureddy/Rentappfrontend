@@ -54,7 +54,7 @@ const styles = {
   },
   table: {
     width: '100%',
-    minWidth: '980px',
+    minWidth: '1080px',
     borderCollapse: 'collapse',
     background: '#fff',
     borderRadius: '12px',
@@ -122,14 +122,17 @@ function AdminUsers() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [regFilter, setRegFilter] = useState('ALL');
 
   // Pagination
   const [page, setPage] = useState(1);
   const pageSize = 5;
+  const registeredCount = users.filter(u => u.registrationCompleted).length;
   const filteredUsers = users.filter(
     u =>
-      u.username.toLowerCase().includes(search.toLowerCase()) ||
-      u.role.toLowerCase().includes(search.toLowerCase())
+      (regFilter === 'ALL' || (regFilter === 'REGISTERED') === !!u.registrationCompleted) &&
+      (u.username.toLowerCase().includes(search.toLowerCase()) ||
+        u.role.toLowerCase().includes(search.toLowerCase()))
   );
   const totalPages = Math.ceil(filteredUsers.length / pageSize);
   const pagedUsers = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
@@ -230,6 +233,7 @@ function AdminUsers() {
       role: user.role,
       fullName: user.fullName || '',
       phone: user.phone || '',
+      registrationCompleted: !!user.registrationCompleted,
       moveInDate: user.moveInDate || '',
       demandedDeposit: user.demandedDeposit != null ? user.demandedDeposit : '',
       // Deliberately blank, not pre-filled with the current total -- this
@@ -240,7 +244,8 @@ function AdminUsers() {
   };
 
   const handleEditChange = e => {
-    setEditUser(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setEditUser(prev => ({ ...prev, [name]: name === 'registrationCompleted' ? value === 'true' : value }));
   };
 
   const handleUpdateUser = async () => {
@@ -252,7 +257,10 @@ function AdminUsers() {
       // Exclude password from update (prevents sending hashed value back & double hashing backend)
       const { username, role, phone, fullName } = editUser;
       // Empty phone / name are sent as empty strings so they can be cleared.
-      const basePayload = { username, role, phone: phone.trim(), fullName: fullName.trim() };
+      const basePayload = {
+        username, role, phone: phone.trim(), fullName: fullName.trim(),
+        registrationCompleted: role === 'ADMIN' ? true : editUser.registrationCompleted,
+      };
       const res = await authFetch(url.adminUserUpdate(editId), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -396,12 +404,30 @@ function AdminUsers() {
         <button onClick={handleExportCSV} style={styles.exportBtn}>Export CSV</button>
       </div>
 
-      <input
-        style={styles.searchBar}
-        placeholder="Search by username or role"
-        value={search}
-        onChange={e => { setSearch(e.target.value); setPage(1); }}
-      />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 18 }}>
+        <input
+          style={{ ...styles.searchBar, marginBottom: 0 }}
+          placeholder="Search by username or role"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setPage(1); }}
+        />
+        {[
+          ['ALL', `All (${users.length})`],
+          ['REGISTERED', `Registered (${registeredCount})`],
+          ['PENDING', `Not registered (${users.length - registeredCount})`],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => { setRegFilter(key); setPage(1); }}
+            style={{
+              background: regFilter === key ? 'linear-gradient(90deg,#2563eb,#38bdf8)' : '#e2e8f0',
+              color: regFilter === key ? '#fff' : '#334155',
+              border: 'none', borderRadius: 18, padding: '7px 16px', fontWeight: 'bold', fontSize: 13, cursor: 'pointer',
+            }}
+          >{label}</button>
+        ))}
+      </div>
 
       {loading && <p style={{ textAlign: 'center' }}>Loading...</p>}
 
@@ -415,6 +441,7 @@ function AdminUsers() {
             {/* Password column removed to avoid editing hashed passwords */}
             <th style={styles.th}>Full Name</th>
             <th style={styles.th}>Role</th>
+            <th style={styles.th}>Registration</th>
             <th style={styles.th}>Phone</th>
             <th style={styles.th}>Move-In Date</th>
             <th style={styles.th}>Demanded Deposit</th>
@@ -475,6 +502,28 @@ function AdminUsers() {
                   </select>
                 ) : (
                   u.role
+                )}
+              </td>
+              <td style={styles.td}>
+                {editId === u.id && editUser.role !== 'ADMIN' ? (
+                  <select
+                    name="registrationCompleted"
+                    value={String(editUser.registrationCompleted)}
+                    onChange={handleEditChange}
+                    style={styles.input}
+                    title="Not registered lets the tenant register again and choose a new password"
+                  >
+                    <option value="true">Registered</option>
+                    <option value="false">Not registered</option>
+                  </select>
+                ) : (
+                  <span style={{
+                    padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                    background: u.registrationCompleted ? '#dcfce7' : '#fef3c7',
+                    color: u.registrationCompleted ? '#166534' : '#92400e',
+                  }}>
+                    {u.registrationCompleted ? 'Registered' : 'Not registered'}
+                  </span>
                 )}
               </td>
               <td style={styles.td}>

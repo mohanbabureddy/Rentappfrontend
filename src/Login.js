@@ -32,7 +32,7 @@ function Login({ setUser }) {
       data.lastActivity = Date.now();
       setUser(data);
       localStorage.setItem('user', JSON.stringify(data));
-      if (data.role === 'ADMIN') navigate('/admin/view-bills'); else navigate('/');
+      if (data.role === 'ADMIN') navigate('/admin/dashboard'); else navigate('/');
     } catch (e) {
       if (e.name === 'TypeError' && (e.message === 'Failed to fetch' || e.message === 'NetworkError when attempting to fetch resource.')) {
         setError('Could not reach the server. Please check your connection and try again.');

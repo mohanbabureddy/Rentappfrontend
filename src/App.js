@@ -4,6 +4,7 @@ import TenantBills from './TenantBills';
 import TenantComplaints from './TenantComplaints';
 import TenantOccupants from './TenantOccupants';
 import AdminAddBill from './AdminAddBill';
+import AdminDashboard from './AdminDashboard';
 import AdminBulkBills from './AdminBulkBills';
 import AdminUsers from './AdminUsers';
 import AdminViewBills from './AdminViewBills';
@@ -65,7 +66,7 @@ function App() {
     clearTimeout(timerRef.current);
   };
 
-  const defaultRoute = user?.role === 'ADMIN' ? '/admin/view-bills' : '/';
+  const defaultRoute = user?.role === 'ADMIN' ? '/admin/dashboard' : '/';
 
   // Inactivity auto-logout logic
   useEffect(() => {
@@ -172,6 +173,7 @@ function App() {
           >
             {user.role === "ADMIN" ? (
               <>
+                <Link to="/admin/dashboard" style={navLinkStyle}>Dashboard</Link>
                 <Link to="/admin/add-bill" style={navLinkStyle}>Add Bill</Link>
                 <Link to="/admin/bulk-bills" style={navLinkStyle}>Bulk Bills</Link>
                 <Link to="/admin/view-bills" style={navLinkStyle}>View Bills</Link>
@@ -197,6 +199,7 @@ function App() {
             <Route path="/refund-policy" element={<RefundPolicy />} />
             {user.role === "ADMIN" && (
               <>
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin/add-bill" element={<AdminAddBill />} />
                 <Route path="/admin/bulk-bills" element={<AdminBulkBills />} />
                 <Route path="/admin/view-bills" element={<AdminViewBills />} />
