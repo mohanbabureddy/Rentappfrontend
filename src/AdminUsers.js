@@ -238,7 +238,7 @@ function AdminUsers() {
       }
       // After basic update, optionally update move-in date and/or record a
       // manual deposit entry if provided
-      if (editUser.moveInDate || editUser.demandedDeposit !== '' || editUser.manualDepositAmount) {
+      if (editUser.role !== 'ADMIN' && (editUser.moveInDate || editUser.demandedDeposit !== '' || editUser.manualDepositAmount)) {
         try {
           setUpdatingMoveIn(true);
           const depositRes = await authFetch(userMoveInDepositUrl.update(editId), {
@@ -431,7 +431,9 @@ function AdminUsers() {
                 )}
               </td>
               <td style={styles.td}>
-                {editId === u.id ? (
+                {u.role === 'ADMIN' ? (
+                  '—'
+                ) : editId === u.id ? (
                   <input
                     type="date"
                     name="moveInDate"
@@ -444,7 +446,9 @@ function AdminUsers() {
                 )}
               </td>
               <td style={styles.td}>
-                {editId === u.id ? (
+                {u.role === 'ADMIN' ? (
+                  '—'
+                ) : editId === u.id ? (
                   <input
                     type="number"
                     step="0.01"
@@ -460,7 +464,9 @@ function AdminUsers() {
                 )}
               </td>
               <td style={styles.td}>
-                {editId === u.id ? (
+                {u.role === 'ADMIN' ? (
+                  '—'
+                ) : editId === u.id ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'stretch' }}>
                     <div style={{ fontSize: 12, color: '#64748b' }}>
                       Current: ₹{typeof u.totalAmountDeposited === 'number' ? u.totalAmountDeposited : (u.totalAmountDeposited || 0)}
