@@ -12,6 +12,7 @@ export default function Registration() {
   const [form, setForm] = useState({
     username: '',
     email: '',
+    phone: '',
     otp: '',
     password: '',
     confirmPassword: ''
@@ -40,7 +41,7 @@ export default function Registration() {
   const start = async (e)=>{
     e.preventDefault();
     setErr(''); setMsg('');
-  if(!form.username||!form.email){setErr('All fields required');return;}
+  if(!form.username||!form.email||!form.phone){setErr('All fields required');return;}
   if(!accepted){setErr('You must accept Terms & Refund Policy');return;}
     setLoading(true);
     try{
@@ -49,7 +50,8 @@ export default function Registration() {
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           username:form.username.trim(),
-          email:form.email.trim()
+          email:form.email.trim(),
+          phone:form.phone.trim()
         }),
         credentials: FETCH_CREDENTIALS
       });
@@ -132,6 +134,8 @@ export default function Registration() {
                  value={form.username} onChange={onChange} style={inputStyle}/>
           <input name="email" type="email" placeholder="Email"
                  value={form.email} onChange={onChange} style={inputStyle}/>
+          <input name="phone" type="tel" inputMode="numeric" placeholder="Mobile number (10 digits)"
+                 value={form.phone} onChange={onChange} style={inputStyle}/>
           <label style={{display:'flex',alignItems:'flex-start',fontSize:12,lineHeight:1.4,color:'#334155',marginBottom:14}}>
             <input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)} style={{marginRight:8,marginTop:2}} />
             <span>I agree to the <Link to="/terms" style={{color:'#2563eb',fontWeight:600}}>Terms & Conditions</Link> and the <Link to="/refund-policy" style={{color:'#2563eb',fontWeight:600}}>Cancellation & Refund Policy</Link>.</span>
