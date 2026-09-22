@@ -76,8 +76,26 @@ export function authHeaders(extra = {}) {
 }
 
 // Drop-in replacement for fetch() that attaches the Authorization header.
+// A 401 here always means "this browser's login is no longer valid" (no token,
+// expired, or -- since the account is limited to one signed-in device -- superseded
+// by a login elsewhere). Rather than let every screen fail silently with its own
+// generic error, force this browser back to Login with the server's own reason.
 export async function authFetch(input, init = {}) {
-  return fetch(input, { credentials: FETCH_CREDENTIALS, ...init, headers: authHeaders(init.headers || {}) });
+  const hadToken = !!getToken();
+  const res = await fetch(input, { credentials: FETCH_CREDENTIALS, ...init, headers: authHeaders(init.headers || {}) });
+  if (res.status === 401 && hadToken) {
+    let message = 'Your session has ended. Please log in again.';
+    try {
+      const data = await res.clone().json();
+      if (data && data.error) message = data.error;
+    } catch { /* body wasn't JSON; keep the default message */ }
+    localStorage.removeItem('user');
+    sessionStorage.setItem('loginNotice', message);
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
+  }
+  return res;
 }
 
 // Opens a protected backend file (e.g. an occupant's Aadhaar upload) in a new tab.

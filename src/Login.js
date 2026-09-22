@@ -5,7 +5,13 @@ import { url, FETCH_CREDENTIALS } from './apiClient';
 function Login({ setUser }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  // Shown once when authFetch redirected here after a 401 (e.g. logged out
+  // because this account signed in elsewhere) -- read once, then discarded.
+  const [error, setError] = useState(() => {
+    const notice = sessionStorage.getItem('loginNotice');
+    if (notice) sessionStorage.removeItem('loginNotice');
+    return notice || '';
+  });
   const navigate = useNavigate();
 
   const handleLogin = async () => {
