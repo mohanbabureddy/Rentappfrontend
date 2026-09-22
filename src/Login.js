@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { url, FETCH_CREDENTIALS } from './apiClient';
+import LanguageSwitcher from './LanguageSwitcher';
 
 function Login({ setUser }) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   // Shown once when authFetch redirected here after a 401 (e.g. logged out
@@ -109,15 +112,18 @@ function Login({ setUser }) {
 
   return (
     <div style={box}>
-      <h2 style={{ color: '#2563eb', marginBottom: '30px', letterSpacing: '1px', fontWeight: 'bold' }}>Login</h2>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <LanguageSwitcher />
+      </div>
+      <h2 style={{ color: '#2563eb', marginBottom: '30px', letterSpacing: '1px', fontWeight: 'bold' }}>{t('login.login')}</h2>
       {error && <div style={{ color: 'red', marginBottom: 14, fontSize: 14 }}>{error}</div>}
-      <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} style={input} />
-      <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} style={input} />
-      <button onClick={handleLogin} style={mainBtn}>Login</button>
+      <input placeholder={t('login.username')} value={username} onChange={e => setUsername(e.target.value)} style={input} />
+      <input type="password" placeholder={t('login.password')} value={password} onChange={e => setPassword(e.target.value)} style={input} />
+      <button onClick={handleLogin} style={mainBtn}>{t('login.login')}</button>
 
       <div style={{ display: 'flex', gap: '0', marginTop: '24px' }}>
-        <button onClick={() => navigate('/register')} style={registerBtn}>Register</button>
-        <button onClick={() => navigate('/forgot')} style={forgotBtn}>Forgot Password</button>
+        <button onClick={() => navigate('/register')} style={registerBtn}>{t('login.register')}</button>
+        <button onClick={() => navigate('/forgot')} style={forgotBtn}>{t('login.forgot')}</button>
       </div>
     </div>
   );

@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { url, authFetch, userMoveInDepositUrl } from './apiClient';
 import './TenantBills.css';
 
 function TenantBills({ username }) {
+  const { t } = useTranslation();
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payingBillId, setPayingBillId] = useState(null); // Track which bill is being paid
@@ -105,7 +107,7 @@ function TenantBills({ username }) {
           });
           const data = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-          alert(`✅ Payment successful!\nPayment ID: ${response.razorpay_payment_id}`);
+          alert(`✅ ${t('bills.paymentSuccessful')}\n${t('bills.paymentId')}: ${response.razorpay_payment_id}`);
           await authFetch(url.logPaymentSuccess(), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -209,6 +211,8 @@ function TenantBills({ username }) {
     return <p style={{ textAlign: 'center', marginTop: '40px' }}>Loading bills…</p>;
   }
 
+  const unpaidBills = bills.filter((b) => !b.paid);
+
   return (
     <div className="bills-page">
       <h2
@@ -220,30 +224,30 @@ function TenantBills({ username }) {
           fontWeight: 'bold',
         }}
       >
-        My Bills
+        {t('bills.heading')}
       </h2>
 
       <div className="bills-summary">
         <div>
-          <strong>Move-in Date:</strong>{' '}
+          <strong>{t('bills.moveInDate')}:</strong>{' '}
           {moveInInfo.moveInDate ? new Date(moveInInfo.moveInDate).toLocaleDateString() : (
             infoLoading ? <em style={{ color:'#64748b' }}>Loading…</em> : <em style={{ color:'#64748b' }}>—</em>
           )}
         </div>
         <div>
-          <strong>Deposit Paid:</strong>{' '}
+          <strong>{t('bills.depositPaid')}:</strong>{' '}
           {infoLoading ? '…' : `₹${moveInInfo.totalAmountDeposited}`}
           {!infoLoading && moveInInfo.demandedDeposit != null && (
-            <span style={{ color: '#64748b' }}> / ₹{moveInInfo.demandedDeposit} demanded</span>
+            <span style={{ color: '#64748b' }}> / ₹{moveInInfo.demandedDeposit} {t('bills.demanded')}</span>
           )}
         </div>
         {!infoLoading && moveInInfo.demandedDeposit != null && (
           <div>
             {moveInInfo.totalAmountDeposited >= moveInInfo.demandedDeposit ? (
-              <span style={{ color: '#16a34a', fontWeight: 600 }}>✅ Deposit fully paid</span>
+              <span style={{ color: '#16a34a', fontWeight: 600 }}>✅ {t('bills.fullyPaid')}</span>
             ) : (
               <span style={{ color: '#dc2626', fontWeight: 600 }}>
-                ₹{(moveInInfo.demandedDeposit - moveInInfo.totalAmountDeposited).toFixed(2)} remaining
+                ₹{(moveInInfo.demandedDeposit - moveInInfo.totalAmountDeposited).toFixed(2)} {t('bills.remaining')}
               </span>
             )}
           </div>
@@ -253,7 +257,7 @@ function TenantBills({ username }) {
             type="number"
             min="1"
             step="0.01"
-            placeholder="Amount"
+            placeholder={t('bills.amountPlaceholder')}
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
             className="deposit-pay-input"
@@ -264,7 +268,7 @@ function TenantBills({ username }) {
             onClick={payDeposit}
             disabled={payingDeposit}
           >
-            {payingDeposit ? 'Processing...' : 'Pay Deposit'}
+            {payingDeposit ? t('bills.processing') : t('bills.payDeposit')}
           </button>
         </div>
         {moveInInfo.history.length > 0 && (
@@ -273,7 +277,7 @@ function TenantBills({ username }) {
             className="deposit-history-toggle"
             onClick={() => setShowDepositHistory(v => !v)}
           >
-            {showDepositHistory ? 'Hide' : 'View'} deposit payment history ({moveInInfo.history.length})
+            {showDepositHistory ? t('bills.hideDepositHistory') : t('bills.viewDepositHistory')} ({moveInInfo.history.length})
           </button>
         )}
         {showDepositHistory && moveInInfo.history.length > 0 && (
@@ -284,7 +288,7 @@ function TenantBills({ username }) {
                   {entry.paidDate ? new Date(entry.paidDate).toLocaleDateString() : '—'}
                 </span>
                 <span className="deposit-history-source">
-                  {entry.source === 'razorpay' ? 'Paid online' : 'Recorded by admin'}
+                  {entry.source === 'razorpay' ? t('bills.paidOnline') : t('bills.recordedByAdmin')}
                   {entry.notes ? ` · ${entry.notes}` : ''}
                 </span>
                 <span className="deposit-history-amount">₹{entry.amount}</span>
@@ -294,13 +298,15 @@ function TenantBills({ username }) {
         )}
       </div>
 
-      {bills.length === 0 ? (
+      {unpaidBills.length === 0 ? (
         <p style={{ textAlign: 'center', color: '#64748b' }}>
-          No bills found for <strong>{username}</strong>.
+          {bills.length === 0 ? (
+            <>{t('bills.noBillsAtAll')} <strong>{username}</strong>.</>
+          ) : t('bills.noUnpaidBills')}
         </p>
       ) : (
         <div className="bill-list">
-          {bills.map((bill, idx) => {
+          {unpaidBills.map((bill, idx) => {
             const total = Number(bill.rent || 0) + Number(bill.water || 0) + Number(bill.electricity || 0) + Number(bill.miscellaneous || 0);
             const isElectricity = bill.billType === 'ELECTRICITY';
             return (
@@ -308,48 +314,44 @@ function TenantBills({ username }) {
                 <div className="bill-card-header">
                   <span className="bill-month">
                     {bill.monthYear}
-                    <span className="bill-type-tag">{isElectricity ? 'Electricity' : 'Rent'}</span>
+                    <span className="bill-type-tag">{isElectricity ? t('bills.electricityTag') : t('bills.rentTag')}</span>
                   </span>
-                  {bill.paid ? (
-                    <span className="bill-status-paid">✅ Paid</span>
-                  ) : (
-                    <button
-                      className="bill-pay-btn"
-                      onClick={() => payNow(bill)}
-                      disabled={payingBillId === bill.id}
-                    >
-                      {payingBillId === bill.id ? "Processing..." : "Pay"}
-                    </button>
-                  )}
+                  <button
+                    className="bill-pay-btn"
+                    onClick={() => payNow(bill)}
+                    disabled={payingBillId === bill.id}
+                  >
+                    {payingBillId === bill.id ? t('bills.processing') : t('bills.pay')}
+                  </button>
                 </div>
                 <div className="bill-breakdown">
                   {!isElectricity && (
                     <>
                       <div className="bill-item">
-                        <span className="bill-item-label">Rent</span>
+                        <span className="bill-item-label">{t('bills.rent')}</span>
                         <span className="bill-item-value">₹{bill.rent || 0}</span>
                       </div>
                       <div className="bill-item">
-                        <span className="bill-item-label">Water</span>
+                        <span className="bill-item-label">{t('bills.water')}</span>
                         <span className="bill-item-value">₹{bill.water || 0}</span>
                       </div>
                     </>
                   )}
                   {(isElectricity || bill.electricity) && (
                     <div className="bill-item">
-                      <span className="bill-item-label">Electricity</span>
+                      <span className="bill-item-label">{t('bills.electricity')}</span>
                       <span className="bill-item-value">₹{bill.electricity || 0}</span>
                     </div>
                   )}
                   {!isElectricity && (
                     <div className="bill-item">
-                      <span className="bill-item-label">Misc</span>
+                      <span className="bill-item-label">{t('bills.misc')}</span>
                       <span className="bill-item-value">₹{bill.miscellaneous || 0}</span>
                     </div>
                   )}
                 </div>
                 <div className="bill-total-row">
-                  <span className="bill-total-label">Total</span>
+                  <span className="bill-total-label">{t('bills.total')}</span>
                   <span className="bill-total-value">₹{total}</span>
                 </div>
               </div>

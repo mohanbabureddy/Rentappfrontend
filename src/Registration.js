@@ -11,6 +11,7 @@ export default function Registration() {
   const [finished, setFinished] = useState(false);
   const [form, setForm] = useState({
     username: '',
+    registrationKey: '',
     fullName: '',
     email: '',
     phone: '',
@@ -42,7 +43,7 @@ export default function Registration() {
   const start = async (e)=>{
     e.preventDefault();
     setErr(''); setMsg('');
-  if(!form.username||!form.fullName.trim()||!form.email||!form.phone){setErr('All fields required');return;}
+  if(!form.username||!form.registrationKey.trim()||!form.fullName.trim()||!form.email||!form.phone){setErr('All fields required');return;}
   if(!accepted){setErr('You must accept Terms & Refund Policy');return;}
     setLoading(true);
     try{
@@ -51,6 +52,7 @@ export default function Registration() {
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           username:form.username.trim(),
+          registrationKey:form.registrationKey.trim(),
           fullName:form.fullName.trim(),
           email:form.email.trim(),
           phone:form.phone.trim()
@@ -66,6 +68,8 @@ export default function Registration() {
         } else if (res.status === 409 || /already\s*(registered|exists)|duplicate|user\s*exists/i.test(serverMsg)) {
           // If backend indicates the user already exists, show friendly message
           setErr('Already registered — please login.');
+        } else if (res.status === 403) {
+          setErr('Invalid registration key. Please check with the property owner.');
         } else {
           throw new Error(data.error||'Failed to start');
         }
@@ -134,6 +138,8 @@ export default function Registration() {
         <form onSubmit={start}>
           <input name="username" placeholder="Username (from admin)"
                  value={form.username} onChange={onChange} style={inputStyle}/>
+          <input name="registrationKey" placeholder="Registration key (given by the owner)"
+                 value={form.registrationKey} onChange={onChange} style={inputStyle}/>
           <input name="fullName" placeholder="Full name (as on your ID)"
                  value={form.fullName} onChange={onChange} style={inputStyle}/>
           <input name="email" type="email" placeholder="Email"

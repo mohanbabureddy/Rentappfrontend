@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import TenantBills from './TenantBills';
+import TenantBillsHistory from './TenantBillsHistory';
+import TenantVacatePage from './TenantVacatePage';
 import TenantComplaints from './TenantComplaints';
 import TenantOccupants from './TenantOccupants';
 import AdminAddBill from './AdminAddBill';
@@ -11,13 +14,17 @@ import AdminViewBills from './AdminViewBills';
 import AdminPaidBillsReport from './AdminPaidBillsReport';
 import AdminComplaints from './AdminComplaints';
 import AdminTenantDocuments from './AdminTenantDocuments';
+import AdminVacateRequests from './AdminVacateRequests';
+import AdminArchivedTenants from './AdminArchivedTenants';
 import Login from './Login';
 import Registration from './Registration';
 import ForgotReset from './ForgotReset';
 import Terms from './Terms';
 import RefundPolicy from './RefundPolicy';
 import ChatAssistant from './ChatAssistant';
+import LanguageSwitcher from './LanguageSwitcher';
 import { API_BASE, API_PREFIX } from './apiClient';
+import './i18n';
 
 // App version (exposed via environment variable REACT_APP_VERSION)
 const APP_VERSION = process.env.REACT_APP_VERSION || '0.1.0';
@@ -29,6 +36,7 @@ const FRONTEND_COMMIT = (process.env.REACT_APP_GIT_COMMIT || 'local-dev').slice(
 const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes
 
 function App() {
+  const { t } = useTranslation();
   const [user, setUser] = useState(null);
   const [backendCommit, setBackendCommit] = useState(null);
   const timerRef = useRef(null);
@@ -140,10 +148,11 @@ function App() {
             }}
           >
             <div style={{ fontWeight: 'bold', color: '#2563eb', fontSize: '20px', letterSpacing: '1px' }}>
-              Rent Management
+              {t('header.title')}
             </div>
             <div>
-              Welcome, <strong>{user.fullName || user.username}</strong>{user.role === 'ADMIN' && ' (Admin)'}
+              {t('header.welcome')} <strong>{user.fullName || user.username}</strong>{user.role === 'ADMIN' && ` ${t('header.admin')}`}
+              <LanguageSwitcher />
               <button
                 style={{
                   marginLeft: '16px',
@@ -157,7 +166,7 @@ function App() {
                 }}
                 onClick={handleLogout}
               >
-                Logout
+                {t('header.logout')}
               </button>
             </div>
           </div>
@@ -173,26 +182,32 @@ function App() {
           >
             {user.role === "ADMIN" ? (
               <>
-                <Link to="/admin/dashboard" style={navLinkStyle}>Dashboard</Link>
-                <Link to="/admin/add-bill" style={navLinkStyle}>Add Bill</Link>
-                <Link to="/admin/bulk-bills" style={navLinkStyle}>Bulk Bills</Link>
-                <Link to="/admin/view-bills" style={navLinkStyle}>View Bills</Link>
-                <Link to="/admin/users" style={navLinkStyle}>Manage Users</Link>
-                <Link to="/admin/paid-report" style={navLinkStyle}>Paid Report</Link>
-                <Link to="/admin/complaints" style={navLinkStyle}>Complaints</Link>
-                <Link to="/admin/tenant-docs" style={navLinkStyle}>Tenant Docs</Link>
+                <Link to="/admin/dashboard" style={navLinkStyle}>{t('nav.dashboard')}</Link>
+                <Link to="/admin/add-bill" style={navLinkStyle}>{t('nav.addBill')}</Link>
+                <Link to="/admin/bulk-bills" style={navLinkStyle}>{t('nav.bulkBills')}</Link>
+                <Link to="/admin/view-bills" style={navLinkStyle}>{t('nav.viewBills')}</Link>
+                <Link to="/admin/users" style={navLinkStyle}>{t('nav.manageUsers')}</Link>
+                <Link to="/admin/paid-report" style={navLinkStyle}>{t('nav.paidReport')}</Link>
+                <Link to="/admin/complaints" style={navLinkStyle}>{t('nav.complaints')}</Link>
+                <Link to="/admin/tenant-docs" style={navLinkStyle}>{t('nav.tenantDocs')}</Link>
+                <Link to="/admin/vacate" style={navLinkStyle}>{t('nav.vacateRequests')}</Link>
+                <Link to="/admin/archived" style={navLinkStyle}>Archived Tenants</Link>
               </>
             ) : (
               <>
-                <Link to="/" style={navLinkStyle}>My Bills</Link>
-                <Link to="/complaints" style={navLinkStyle}>Complaints</Link>
-                <Link to="/occupants" style={navLinkStyle}>Occupants</Link>
+                <Link to="/" style={navLinkStyle}>{t('nav.myBills')}</Link>
+                <Link to="/history" style={navLinkStyle}>{t('nav.history')}</Link>
+                <Link to="/vacate" style={navLinkStyle}>{t('nav.vacate')}</Link>
+                <Link to="/complaints" style={navLinkStyle}>{t('nav.complaints')}</Link>
+                <Link to="/occupants" style={navLinkStyle}>{t('nav.occupants')}</Link>
               </>
             )}
           </nav>
 
           <Routes>
             <Route path="/" element={<TenantBills username={user.username} />} />
+            <Route path="/history" element={<TenantBillsHistory username={user.username} />} />
+            <Route path="/vacate" element={<TenantVacatePage />} />
             <Route path="/complaints" element={<TenantComplaints username={user.username} />} />
             <Route path="/occupants" element={<TenantOccupants username={user.username} />} />
             <Route path="/terms" element={<Terms />} />
@@ -209,6 +224,8 @@ function App() {
                 {/* Redirect legacy occupants path to new tenant docs */}
                 <Route path="/admin/occupants" element={<Navigate to="/admin/tenant-docs" replace />} />
                 <Route path="/admin/tenant-docs" element={<AdminTenantDocuments />} />
+                <Route path="/admin/vacate" element={<AdminVacateRequests />} />
+                <Route path="/admin/archived" element={<AdminArchivedTenants />} />
               </>
             )}
             <Route path="*" element={<Navigate to={defaultRoute} replace />} />

@@ -47,7 +47,18 @@ export const url = {
   assistantAsk: () => `${API_BASE}${API_PREFIX}/assistant/ask`,
   login: () => `${API_BASE}${API_PREFIX}/users/login`,
   registrationStart: () => `${API_BASE}${API_PREFIX}/users/registration/start`,
-  registrationFinish: () => `${API_BASE}${API_PREFIX}/users/registration/finish`
+  registrationFinish: () => `${API_BASE}${API_PREFIX}/users/registration/finish`,
+  vacatePreview: () => `${API_BASE}${API_PREFIX}/tenants/vacate/preview`,
+  vacateStatus: () => `${API_BASE}${API_PREFIX}/tenants/vacate/status`,
+  vacateRequest: () => `${API_BASE}${API_PREFIX}/tenants/vacate/request`,
+  vacateCancel: () => `${API_BASE}${API_PREFIX}/tenants/vacate/cancel`,
+  adminVacateAll: () => `${API_BASE}${API_PREFIX}/admin/vacate/all`,
+  adminVacateApprove: (id) => `${API_BASE}${API_PREFIX}/admin/vacate/${id}/approve`,
+  adminVacateSettle: (id) => `${API_BASE}${API_PREFIX}/admin/vacate/${id}/settle`,
+  adminVacateSettled: () => `${API_BASE}${API_PREFIX}/admin/vacate/settled`,
+  adminVacateFinalize: (id) => `${API_BASE}${API_PREFIX}/admin/vacate/${id}/finalize`,
+  adminArchivedTenants: () => `${API_BASE}${API_PREFIX}/admin/archived-tenants`,
+  vacateAcknowledge: () => `${API_BASE}${API_PREFIX}/tenants/vacate/acknowledge`
 };
 
 // Extended user move-in & deposit specific helpers

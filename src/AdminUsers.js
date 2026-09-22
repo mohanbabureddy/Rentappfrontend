@@ -200,6 +200,9 @@ function AdminUsers() {
         throw new Error(backendMsg ? `Add failed: ${backendMsg}` : 'Add failed');
       }
       const created = await res.json().catch(() => ({}));
+      if (created.registrationKey) {
+        alert(`User "${created.username}" added.\n\nRegistration key: ${created.registrationKey}\n\nGive this to the tenant -- they need it to register. It won't be shown again here, but you can generate a new one with "New Key" if it's lost.`);
+      }
       const hasDetails = newUser.role === 'TENANT' && (newUser.moveInDate || newUser.demandedDeposit !== '' || newUser.depositPaid !== '');
       if (created.id && hasDetails) {
         const detailsRes = await authFetch(userMoveInDepositUrl.update(created.id), {
@@ -270,6 +273,10 @@ function AdminUsers() {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || 'Update failed');
       }
+      const updated = await res.json().catch(() => ({}));
+      if (updated.registrationKey) {
+        alert(`"${updated.username}" is now Not Registered.\n\nNew registration key: ${updated.registrationKey}\n\nGive this to the new tenant -- the old key no longer works.`);
+      }
       // After basic update, optionally update move-in date and/or record a
       // manual deposit entry if provided
       if (editUser.role !== 'ADMIN' && (editUser.moveInDate || editUser.demandedDeposit !== '' || editUser.manualDepositAmount)) {
@@ -322,20 +329,46 @@ function AdminUsers() {
     }
   };
 
-  // Export users as CSV
+  // Export users as CSV -- quoted so a name or note containing a comma doesn't
+  // split into the wrong column when opened in Excel/Sheets.
+  const csvCell = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+
   const handleExportCSV = () => {
     const csvRows = [
-      ['ID', 'Username', 'Role'],
-      ...users.map(u => [u.id, u.username, u.role])
+      ['ID', 'Username', 'Role', 'Full Name', 'Registration Status', 'Registration Key', 'Phone'],
+      ...users.map(u => [
+        u.id, u.username, u.role, u.fullName || '',
+        u.registrationCompleted ? 'Registered' : 'Not registered',
+        u.registrationKey || '',
+        u.phone || '',
+      ]),
     ];
-    const csvContent = csvRows.map(e => e.join(',')).join('\n');
+    const csvContent = csvRows.map(row => row.map(csvCell).join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
+    const link = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = link;
     a.download = 'users.csv';
     a.click();
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(link);
+  };
+
+  // Just the pending tenants and their keys -- the one thing an owner needs
+  // to hand out, without the rest of the user table getting in the way.
+  const handleExportKeysCSV = () => {
+    const pending = users.filter(u => u.role === 'TENANT' && !u.registrationCompleted && u.registrationKey);
+    const csvRows = [
+      ['Username', 'Registration Key'],
+      ...pending.map(u => [u.username, u.registrationKey]),
+    ];
+    const csvContent = csvRows.map(row => row.map(csvCell).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const link = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = link;
+    a.download = 'registration-keys.csv';
+    a.click();
+    URL.revokeObjectURL(link);
   };
 
   return (
@@ -402,6 +435,9 @@ function AdminUsers() {
           {loading ? 'Please wait…' : 'Add'}
         </button>
         <button onClick={handleExportCSV} style={styles.exportBtn}>Export CSV</button>
+        <button onClick={handleExportKeysCSV} style={{ ...styles.exportBtn, background: '#f59e0b' }}>
+          Export Registration Keys
+        </button>
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 18 }}>
@@ -517,13 +553,24 @@ function AdminUsers() {
                     <option value="false">Not registered</option>
                   </select>
                 ) : (
-                  <span style={{
-                    padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                    background: u.registrationCompleted ? '#dcfce7' : '#fef3c7',
-                    color: u.registrationCompleted ? '#166534' : '#92400e',
-                  }}>
-                    {u.registrationCompleted ? 'Registered' : 'Not registered'}
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                      background: u.registrationCompleted ? '#dcfce7' : '#fef3c7',
+                      color: u.registrationCompleted ? '#166534' : '#92400e',
+                    }}>
+                      {u.registrationCompleted ? 'Registered' : 'Not registered'}
+                    </span>
+                    {!u.registrationCompleted && u.registrationKey && (
+                      <input
+                        readOnly
+                        value={u.registrationKey}
+                        onFocus={(e) => e.target.select()}
+                        title="Click to select, then copy"
+                        style={{ ...styles.input, margin: 0, width: 100, textAlign: 'center', fontSize: 12, fontFamily: 'monospace', cursor: 'text' }}
+                      />
+                    )}
+                  </div>
                 )}
               </td>
               <td style={styles.td}>

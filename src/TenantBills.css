@@ -7,6 +7,17 @@
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
 }
 
+.bills-history-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+
 .bills-summary {
   background: #fff;
   padding: 14px 18px;
