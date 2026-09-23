@@ -2,7 +2,13 @@
 FROM node:18 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm install
+
+# --legacy-peer-deps: i18next lists an optional typescript peer (^5||^6||^7)
+# that's newer than the typescript react-scripts@5.0.1 itself pins (^3||^4).
+# It's a peerOptional -- i18next doesn't actually need typescript at runtime
+# -- so this is a safe resolution, and matches how the lockfile itself was
+# generated locally (a plain `npm install` here would fail with ERESOLVE).
+RUN npm install --legacy-peer-deps
 COPY . .
 
 # Build-time config: Render injects dashboard Environment Variables as

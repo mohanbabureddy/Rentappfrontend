@@ -204,10 +204,12 @@ export default function AdminVacateRequests() {
                 const acknowledged = !!r.settlement?.tenantAcknowledged;
                 const openComplaints = r.openComplaints || 0;
                 const unverifiedOccupants = r.unverifiedOccupants || 0;
+                const unpaidBills = r.unpaidBills || 0;
                 const blockers = [];
                 if (!acknowledged) blockers.push('waiting for tenant to confirm the refund');
                 if (openComplaints > 0) blockers.push(`${openComplaints} complaint(s) still open`);
                 if (unverifiedOccupants > 0) blockers.push(`${unverifiedOccupants} occupant photo(s) not verified`);
+                if (unpaidBills > 0) blockers.push(`${unpaidBills} bill(s) still unpaid`);
                 const canFreeUp = blockers.length === 0;
                 return (
                   <div key={r.id} style={row}>
@@ -224,6 +226,9 @@ export default function AdminVacateRequests() {
                       </div>
                       <div style={{ fontSize: 13, marginTop: 2, color: unverifiedOccupants > 0 ? '#92400e' : '#166534', fontWeight: 600 }}>
                         {unverifiedOccupants > 0 ? `⏳ ${unverifiedOccupants} occupant photo(s) not verified` : '✅ All occupant photos verified'}
+                      </div>
+                      <div style={{ fontSize: 13, marginTop: 2, color: unpaidBills > 0 ? '#dc2626' : '#166534', fontWeight: 600 }}>
+                        {unpaidBills > 0 ? `⏳ ${unpaidBills} bill(s) still unpaid -- tenant must pay first` : '✅ All bills paid'}
                       </div>
                       {r.settlement?.tenantFeedback && (
                         <div style={{ fontSize: 13, color: '#334155', marginTop: 4, fontStyle: 'italic' }}>
