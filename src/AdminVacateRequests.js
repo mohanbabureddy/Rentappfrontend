@@ -125,10 +125,14 @@ export default function AdminVacateRequests() {
     }
   };
 
-  const onSettled = (settledData) => {
-    setRequests((rs) => rs.filter((r) => r.id !== settlingId));
-    setSettled((rs) => [...rs, settledData]);
+  const onSettled = () => {
+    // Don't trust the settle action's own response for the settled row --
+    // it has no idea about open complaints, unverified occupants or unpaid
+    // bills (only the /settled listing computes those). Re-fetching is what
+    // makes the blocker badges correct immediately instead of only after a
+    // manual page reload.
     setSettlingId(null);
+    load();
   };
 
   const pending = requests.filter((r) => r.status === 'PENDING');
