@@ -138,10 +138,23 @@ function TenantBills({ username }) {
     rzp.open();
   };
 
+  // How much deposit can still be paid. null = the owner hasn't set a demanded
+  // amount, so there's no limit to compare against. Rounded to paise so float
+  // dust can't leave a fully paid deposit looking like it has 0.0000001 left.
+  const depositRemaining = moveInInfo.demandedDeposit != null
+    ? Math.max(Math.round((moveInInfo.demandedDeposit - moveInInfo.totalAmountDeposited) * 100) / 100, 0)
+    : null;
+  const depositComplete = depositRemaining !== null && depositRemaining <= 0;
+
   const payDeposit = async () => {
     const amount = Number(depositAmount);
     if (!amount || amount <= 0) {
       alert('Enter an amount greater than zero');
+      return;
+    }
+    if (depositComplete) return;
+    if (depositRemaining !== null && amount > depositRemaining) {
+      alert(t('bills.depositTooMuch', { amount: depositRemaining }));
       return;
     }
     if (payingDeposit) return;
@@ -257,20 +270,24 @@ function TenantBills({ username }) {
             type="number"
             min="1"
             step="0.01"
+            max={depositRemaining !== null ? depositRemaining : undefined}
             placeholder={t('bills.amountPlaceholder')}
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
             className="deposit-pay-input"
-            disabled={payingDeposit}
+            disabled={payingDeposit || depositComplete}
           />
           <button
             className="deposit-pay-btn"
             onClick={payDeposit}
-            disabled={payingDeposit}
+            disabled={payingDeposit || depositComplete || infoLoading}
           >
             {payingDeposit ? t('bills.processing') : t('bills.payDeposit')}
           </button>
         </div>
+        {!infoLoading && depositRemaining !== null && depositRemaining > 0 && (
+          <div style={{ fontSize: 12, color: '#64748b' }}>{t('bills.depositUpTo', { amount: depositRemaining })}</div>
+        )}
         {moveInInfo.history.length > 0 && (
           <button
             type="button"

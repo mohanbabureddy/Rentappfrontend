@@ -55,7 +55,9 @@
     "rentTag": "Rent",
     "viewHistory": "View paid bills (history)",
     "paymentSuccessful": "Payment successful!",
-    "paymentId": "Payment ID"
+    "paymentId": "Payment ID",
+    "depositUpTo": "You can pay up to ₹{{amount}} more.",
+    "depositTooMuch": "You can't pay more than the remaining deposit of ₹{{amount}}."
   },
   "history": {
     "heading": "Bill History",

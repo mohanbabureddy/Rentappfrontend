@@ -55,7 +55,9 @@
     "rentTag": "ಬಾಡಿಗೆ",
     "viewHistory": "ಪಾವತಿಸಿದ ಬಿಲ್‌ಗಳನ್ನು ನೋಡಿ (ಇತಿಹಾಸ)",
     "paymentSuccessful": "ಪಾವತಿ ಯಶಸ್ವಿಯಾಗಿದೆ!",
-    "paymentId": "ಪಾವತಿ ಐಡಿ"
+    "paymentId": "ಪಾವತಿ ಐಡಿ",
+    "depositUpTo": "ನೀವು ಇನ್ನೂ ₹{{amount}} ವರೆಗೆ ಪಾವತಿಸಬಹುದು.",
+    "depositTooMuch": "ಉಳಿದ ಠೇವಣಿ ₹{{amount}} ಗಿಂತ ಹೆಚ್ಚು ಪಾವತಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ."
   },
   "history": {
     "heading": "ಬಿಲ್ ಇತಿಹಾಸ",

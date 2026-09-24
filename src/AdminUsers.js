@@ -274,7 +274,7 @@ function AdminUsers() {
         throw new Error(errData.error || 'Update failed');
       }
       const updated = await res.json().catch(() => ({}));
-      if (updated.registrationKey) {
+      if (updated.registrationKey && updated.registrationCompleted === false) {
         alert(`"${updated.username}" is now Not Registered.\n\nNew registration key: ${updated.registrationKey}\n\nGive this to the new tenant -- the old key no longer works.`);
       }
       // After basic update, optionally update move-in date and/or record a

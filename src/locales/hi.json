@@ -55,7 +55,9 @@
     "rentTag": "किराया",
     "viewHistory": "भुगतान किए गए बिल देखें (इतिहास)",
     "paymentSuccessful": "भुगतान सफल!",
-    "paymentId": "भुगतान आईडी"
+    "paymentId": "भुगतान आईडी",
+    "depositUpTo": "आप ₹{{amount}} तक और जमा कर सकते हैं।",
+    "depositTooMuch": "आप शेष जमा राशि ₹{{amount}} से अधिक नहीं भर सकते।"
   },
   "history": {
     "heading": "बिल इतिहास",
