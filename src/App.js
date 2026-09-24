@@ -34,12 +34,18 @@ const FRONTEND_COMMIT = (process.env.REACT_APP_GIT_COMMIT || 'local-dev').slice(
 
 // Keep inactivity limit outside component so it's stable and excluded from hook dependency warnings
 const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes
+// After the limit, ask "still there?" and only log out if nobody answers in this long.
+const IDLE_GRACE_SECONDS = 60;
 
 function App() {
   const { t } = useTranslation();
   const [user, setUser] = useState(null);
   const [backendCommit, setBackendCommit] = useState(null);
+  const [idlePrompt, setIdlePrompt] = useState(false);
+  const [idleLeft, setIdleLeft] = useState(IDLE_GRACE_SECONDS);
   const timerRef = useRef(null);
+  const promptOpenRef = useRef(false);
+  const resetTimerRef = useRef(null);
 
   // Fetch the backend's own deployed commit so the footer can show whether
   // frontend and backend are both on their latest deploy at a glance.
@@ -72,22 +78,48 @@ function App() {
     localStorage.removeItem('user');
     setUser(null);
     clearTimeout(timerRef.current);
+    promptOpenRef.current = false;
+    setIdlePrompt(false);
   };
 
   const defaultRoute = user?.role === 'ADMIN' ? '/admin/dashboard' : '/';
 
-  // Inactivity auto-logout logic
+  const resumeSession = () => {
+    promptOpenRef.current = false;
+    setIdlePrompt(false);
+    if (resetTimerRef.current) resetTimerRef.current();
+  };
+
+  // Count down the grace period while the prompt is showing; nobody answered -> log out.
+  useEffect(() => {
+    if (!idlePrompt) return undefined;
+    const id = setInterval(() => setIdleLeft((s) => s - 1), 1000);
+    return () => clearInterval(id);
+  }, [idlePrompt]);
+
+  useEffect(() => {
+    if (idlePrompt && idleLeft <= 0) {
+      try { sessionStorage.setItem('loginNotice', t('idle.notice')); } catch { /* ignore */ }
+      handleLogout();
+    }
+  }, [idlePrompt, idleLeft]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Inactivity logic: after INACTIVITY_LIMIT of no activity, ask before logging out
   useEffect(() => {
     if (!user) return;
 
-    const logoutAfterInactivity = () => {
-      handleLogout();
-      alert('You have been logged out due to inactivity.');
+    const showIdlePrompt = () => {
+      promptOpenRef.current = true;
+      setIdleLeft(IDLE_GRACE_SECONDS);
+      setIdlePrompt(true);
     };
 
     const resetTimer = () => {
+      // While the prompt is up, stray mouse movement must not silently dismiss it --
+      // only the Resume button counts.
+      if (promptOpenRef.current) return;
       clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(logoutAfterInactivity, INACTIVITY_LIMIT);
+      timerRef.current = setTimeout(showIdlePrompt, INACTIVITY_LIMIT);
       // Persist latest activity timestamp so a full page reload / dev server restart can still evaluate expiry
       try {
         const stored = localStorage.getItem('user');
@@ -106,9 +138,11 @@ function App() {
       window.addEventListener(event, resetTimer)
     );
 
+    resetTimerRef.current = resetTimer;
     resetTimer(); // Start timer on mount
 
     return () => {
+      resetTimerRef.current = null;
       clearTimeout(timerRef.current);
       events.forEach(event =>
         window.removeEventListener(event, resetTimer)
@@ -237,6 +271,32 @@ function App() {
             {backendCommit && <span style={{opacity:0.8,marginLeft:8}}>· API {backendCommit}</span>}
           </div>
           {user.role !== 'ADMIN' && <ChatAssistant username={user.username} onLogout={handleLogout} />}
+          {idlePrompt && (
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="idle-title"
+              style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 16 }}
+            >
+              <div style={{ background: '#fff', borderRadius: 14, padding: '24px 28px', maxWidth: 380, width: '100%', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+                <h3 id="idle-title" style={{ margin: '0 0 10px', color: '#0f172a' }}>{t('idle.title')}</h3>
+                <p style={{ margin: '0 0 18px', color: '#475569', fontSize: 14, lineHeight: 1.5 }}>
+                  {t('idle.body', { seconds: Math.max(idleLeft, 0) })}
+                </p>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                  <button
+                    autoFocus
+                    onClick={resumeSession}
+                    style={{ background: 'linear-gradient(90deg,#2563eb,#38bdf8)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 22px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >{t('idle.resume')}</button>
+                  <button
+                    onClick={handleLogout}
+                    style={{ background: '#e2e8f0', color: '#334155', border: 'none', borderRadius: 8, padding: '10px 22px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >{t('idle.logout')}</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </Router>

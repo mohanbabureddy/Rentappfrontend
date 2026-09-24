@@ -21,6 +21,13 @@
     "logout": "Logout",
     "language": "Language"
   },
+  "idle": {
+    "title": "Are you still there?",
+    "body": "You've been inactive for 5 minutes. For your security you'll be logged out in {{seconds}} seconds.",
+    "resume": "Resume",
+    "logout": "Log out",
+    "notice": "You were logged out due to inactivity."
+  },
   "bills": {
     "heading": "My Bills",
     "moveInDate": "Move-in Date",
