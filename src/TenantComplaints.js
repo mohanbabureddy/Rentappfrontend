@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDateTime } from './dateFormat';
 import { url, authFetch } from './apiClient';
 
 /*
@@ -189,7 +190,7 @@ function TenantComplaints({ username }) {
                 .filter(c => filterStatus==='ALL' || c.status === filterStatus)
                 .map((c) => (
                 <tr key={c.id} style={{ background: '#fff', borderBottom: '1px solid #e2e8f0' }}>
-                  <td style={thTdStyle}>{c.createdDate ? new Date(c.createdDate).toLocaleString() : ''}</td>
+                  <td style={thTdStyle}>{c.createdDate ? formatDateTime(c.createdDate) : ''}</td>
                   <td style={{ ...thTdStyle, textAlign: 'left', maxWidth: '420px' }}>{c.description}</td>
                   <td style={thTdStyle}>
                     <span style={{

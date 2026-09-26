@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatDate } from './dateFormat';
 import { authFetch, url } from './apiClient';
 
 const REFUND_METHODS = [
@@ -159,7 +160,7 @@ export default function AdminVacateRequests() {
                   <div>
                     <strong>{r.tenantUsername}</strong>
                     <div style={{ fontSize: 13, color: '#64748b' }}>
-                      Requested {r.requestedDate} · Proposed move-out {r.vacateDate}
+                      Requested {formatDate(r.requestedDate)} · Proposed move-out {formatDate(r.vacateDate)}
                     </div>
                   </div>
                   <button type="button" onClick={() => approve(r.id)} disabled={busyId === r.id} style={primaryBtn}>
@@ -181,7 +182,7 @@ export default function AdminVacateRequests() {
                     <div>
                       <strong>{r.tenantUsername}</strong>
                       <div style={{ fontSize: 13, color: '#64748b' }}>
-                        Move-out date <strong>{r.vacateDate}</strong> · Rent still billed as usual until then
+                        Move-out date <strong>{formatDate(r.vacateDate)}</strong> · Rent still billed as usual until then
                       </div>
                       <div style={{ fontSize: 13, color: '#0f172a', marginTop: 2 }}>
                         Deposit on file: <strong>₹{r.depositTotal != null ? r.depositTotal : '—'}</strong>
@@ -220,7 +221,7 @@ export default function AdminVacateRequests() {
                     <div>
                       <strong>{r.tenantUsername}</strong>
                       <div style={{ fontSize: 13, color: '#64748b' }}>
-                        Moved out {r.vacateDate} · Refunded ₹{r.settlement?.refundAmount} via {r.settlement?.refundMethod}
+                        Moved out {formatDate(r.vacateDate)} · Refunded ₹{r.settlement?.refundAmount} via {r.settlement?.refundMethod}
                       </div>
                       <div style={{ fontSize: 13, marginTop: 4, color: acknowledged ? '#166534' : '#92400e', fontWeight: 600 }}>
                         {acknowledged ? '✅ Tenant confirmed receiving the refund' : '⏳ Waiting for tenant to confirm'}

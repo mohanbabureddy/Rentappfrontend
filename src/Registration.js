@@ -136,7 +136,7 @@ export default function Registration() {
 
       {!finished && step===1 && (
         <form onSubmit={start}>
-          <input name="username" placeholder="Username (from admin)"
+          <input name="username" placeholder="Username (from owner)"
                  value={form.username} onChange={onChange} style={inputStyle}/>
           <input name="registrationKey" placeholder="Registration key (given by the owner)"
                  value={form.registrationKey} onChange={onChange} style={inputStyle}/>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDate } from './dateFormat';
 import { useNavigate } from 'react-router-dom';
 import { url, authFetch, userMoveInDepositUrl } from './apiClient';
 
@@ -599,7 +600,7 @@ function AdminUsers() {
                     style={styles.input}
                   />
                 ) : (
-                  u.moveInDate ? new Date(u.moveInDate).toLocaleDateString() : '—'
+                  u.moveInDate ? formatDate(u.moveInDate) : '—'
                 )}
               </td>
               <td style={styles.td}>

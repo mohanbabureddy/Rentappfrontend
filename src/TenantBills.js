@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { formatDate } from './dateFormat';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { url, authFetch, userMoveInDepositUrl } from './apiClient';
@@ -243,7 +244,7 @@ function TenantBills({ username }) {
       <div className="bills-summary">
         <div>
           <strong>{t('bills.moveInDate')}:</strong>{' '}
-          {moveInInfo.moveInDate ? new Date(moveInInfo.moveInDate).toLocaleDateString() : (
+          {moveInInfo.moveInDate ? formatDate(moveInInfo.moveInDate) : (
             infoLoading ? <em style={{ color:'#64748b' }}>Loading…</em> : <em style={{ color:'#64748b' }}>—</em>
           )}
         </div>
@@ -302,7 +303,7 @@ function TenantBills({ username }) {
             {moveInInfo.history.map((entry) => (
               <div className="deposit-history-row" key={entry.id}>
                 <span className="deposit-history-date">
-                  {entry.paidDate ? new Date(entry.paidDate).toLocaleDateString() : '—'}
+                  {entry.paidDate ? formatDate(entry.paidDate) : '—'}
                 </span>
                 <span className="deposit-history-source">
                   {entry.source === 'razorpay' ? t('bills.paidOnline') : t('bills.recordedByAdmin')}

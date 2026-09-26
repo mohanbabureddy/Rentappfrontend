@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { formatDate } from './dateFormat';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { url, authFetch } from './apiClient';
@@ -64,7 +65,8 @@ export default function TenantBillsHistory({ username }) {
                     <span className="bill-type-tag">{isElectricity ? t('bills.electricityTag') : t('bills.rentTag')}</span>
                   </span>
                   <span className="bill-status-paid">
-                    ✅ {t('bills.paid')}{bill.paidDate ? ` · ${t('history.paidOn')} ${new Date(bill.paidDate).toLocaleDateString()}` : ''}
+                    ✅ {t('bills.paid')}{bill.paidDate ? ` · ${t('history.paidOn')} ${formatDate(bill.paidDate)}` : ''}
+                    {bill.paidVia === 'OWNER' ? ` · ${t('bills.paidToOwner')}` : bill.paidVia === 'ONLINE' ? ` · ${t('bills.paidOnline')}` : ''}
                   </span>
                 </div>
                 <div className="bill-total-row">

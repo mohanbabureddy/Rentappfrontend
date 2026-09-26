@@ -129,6 +129,24 @@ export default function AdminViewBills() {
     }
   };
 
+  const handleMarkPaid = async (b) => {
+    if (!window.confirm(`Mark ${b.tenantName}'s ${b.monthYear} bill as paid to the owner? The tenant will be emailed the receipt.`)) return;
+    setLoading(true);
+    try {
+      const res = await authFetch(`${API_BASE}/markPaidByOwner/${b.id}`, { method: 'PUT' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Could not mark as paid');
+      }
+      await fetchBills();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Error marking bill as paid');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEdit = (b) => {
     setEditId(b.id);
     setEditForm({
@@ -335,7 +353,7 @@ export default function AdminViewBills() {
                 </td>
 
                 <td style={styles.td}>
-                  {b.paid ? <span style={{ color:'#22c55e' }}>✅</span>
+                  {b.paid ? <span style={{ color:'#22c55e' }} title={b.paidVia === 'OWNER' ? 'Marked paid by owner' : b.paidVia === 'ONLINE' ? 'Paid online' : ''}>✅</span>
                           : <span style={{ color:'#ef4444' }}>❌</span>}
                 </td>
 
@@ -358,6 +376,15 @@ export default function AdminViewBills() {
                     </>
                   ) : (
                     <>
+                      {!b.paid && (
+                        <button
+                          onClick={() => handleMarkPaid(b)}
+                          style={{ ...styles.btn, ...styles.btnSave }}
+                          disabled={loading}
+                        >
+                          Mark paid
+                        </button>
+                      )}
                       {!b.paid && (
                         <button
                           onClick={() => handleEdit(b)}

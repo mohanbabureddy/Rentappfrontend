@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { formatDateTime } from './dateFormat';
 import { authFetch } from './apiClient';
 
 /* AdminComplaints
@@ -119,7 +120,7 @@ function AdminComplaints() {
           <tbody>
             {visible.map(c => (
               <tr key={c.id} style={{ background: '#fff', borderBottom: '1px solid #e2e8f0' }}>
-                <td style={thTdStyle}>{c.createdDate ? new Date(c.createdDate).toLocaleString() : ''}</td>
+                <td style={thTdStyle}>{c.createdDate ? formatDateTime(c.createdDate) : ''}</td>
                 <td style={thTdStyle}>{c.tenantName}</td>
                 <td style={{ ...thTdStyle, textAlign: 'left', maxWidth: '400px' }}>{c.description}</td>
                 <td style={thTdStyle}>

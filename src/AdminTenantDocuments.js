@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { formatDateTime } from './dateFormat';
 import { url, authFetch, openAuthenticatedFile } from './apiClient';
 
 // AdminTenantDocuments
@@ -151,7 +152,7 @@ export default function AdminTenantDocuments(){
                       </button>
                     ) : <em style={{ color:'#94a3b8' }}>N/A</em>}
                   </td>
-                  <td style={thTd}>{r.uploadedAt ? new Date(r.uploadedAt).toLocaleString() : ''}</td>
+                  <td style={thTd}>{r.uploadedAt ? formatDateTime(r.uploadedAt) : ''}</td>
                   <td style={thTd}>
                     {r.verified ? (
                       <span style={{ background:'#dcfce7', color:'#166534', padding:'4px 10px', borderRadius:20, fontSize:12, fontWeight:600 }}>VERIFIED</span>

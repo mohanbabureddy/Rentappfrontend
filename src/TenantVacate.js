@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { formatDate } from './dateFormat';
 import { useTranslation } from 'react-i18next';
 import { url, authFetch } from './apiClient';
 import './TenantVacate.css';
 
-const fmt = (iso, locale) => new Date(iso + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
-const fmtDateTime = (iso, locale) => (iso ? new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) : '');
+const fmt = (iso) => formatDate(iso);
+const fmtDateTime = (iso) => formatDate(iso);
 
 const LOCALE_MAP = { en: 'en-IN', hi: 'hi-IN', kn: 'kn-IN', ta: 'ta-IN' };
 

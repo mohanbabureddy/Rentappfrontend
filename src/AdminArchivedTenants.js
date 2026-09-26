@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatDate, formatIfDate } from './dateFormat';
 import { authFetch, url } from './apiClient';
 
 function Section({ title, rows, columns }) {
@@ -27,7 +28,7 @@ function Section({ title, rows, columns }) {
 function formatValue(v) {
   if (v === null || v === undefined || v === '') return '—';
   if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  return String(v);
+  return String(formatIfDate(v));
 }
 
 function ArchiveDetail({ data }) {
@@ -37,7 +38,7 @@ function ArchiveDetail({ data }) {
         <strong>{data.fullName || 'Unnamed'}</strong>
         {data.mail && <> · {data.mail}</>}
         {data.phone && <> · {data.phone}</>}
-        {data.moveInDate && <> · Moved in {data.moveInDate}</>}
+        {data.moveInDate && <> · Moved in {formatDate(data.moveInDate)}</>}
         {data.demandedDeposit != null && <> · Demanded deposit ₹{data.demandedDeposit}</>}
       </div>
       <Section title="Bills" rows={data.bills} columns={[['monthYear', 'Month'], ['billType', 'Type'], ['rent', 'Rent'], ['water', 'Water'], ['electricity', 'Electricity'], ['miscellaneous', 'Misc'], ['paid', 'Paid'], ['paidDate', 'Paid Date']]} />
@@ -93,7 +94,7 @@ export default function AdminArchivedTenants() {
                 <div>
                   <strong>{r.username}</strong>
                   <div style={{ fontSize: 13, color: '#64748b' }}>
-                    Archived {r.archivedDate ? new Date(r.archivedDate).toLocaleDateString() : '—'}
+                    Archived {r.archivedDate ? formatDate(r.archivedDate) : '—'}
                     {r.archivedBy && <> by {r.archivedBy}</>}
                   </div>
                 </div>
